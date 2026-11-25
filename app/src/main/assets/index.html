@@ -1,1 +1,2146 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#090D16" />
+  <title>SSD Nexus • NexusCloud</title>
+  <script src="./gramjs.js"></script>
+  <style>
+    :root {
+      --bg: #090D16;
+      --bg-elev: #111827;
+      --bg-card: #161F32;
+      --bg-hover: #1E293B;
+      --border: rgba(148, 163, 184, 0.16);
+      --border-strong: rgba(56, 189, 248, 0.38);
+      --text: #F8FAFC;
+      --muted: #94A3B8;
+      --accent: #38BDF8;
+      --accent-dark: #0284C7;
+      --danger: #EF4444;
+      --success: #10B981;
+      --gold: #F59E0B;
+      --radius: 16px;
+      --shadow: 0 18px 45px rgba(0, 0, 0, 0.45);
+    }
 
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    button, input, select {
+      font-family: inherit;
+      color: inherit;
+    }
+
+    .hidden { display: none !important; }
+
+    /* ---------- AUTH SCREEN ---------- */
+    #authScreen {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      overflow-y: auto;
+      background:
+        radial-gradient(circle at 18% 12%, rgba(56, 189, 248, 0.16), transparent 45%),
+        radial-gradient(circle at 82% 88%, rgba(239, 68, 68, 0.12), transparent 45%),
+        var(--bg);
+      z-index: 50;
+    }
+
+    .auth-card {
+      width: 100%;
+      max-width: 420px;
+      background: rgba(17, 24, 39, 0.94);
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      padding: 26px 22px;
+      box-shadow: var(--shadow);
+      text-align: center;
+    }
+
+    .brand-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    .brand-logo {
+      width: 62px;
+      height: 62px;
+      margin: 0 auto 14px;
+      border-radius: 18px;
+      background: linear-gradient(145deg, #0F172A, #1E293B);
+      border: 2px solid var(--accent);
+      display: grid;
+      place-items: center;
+      box-shadow: 0 0 28px rgba(56, 189, 248, 0.25);
+    }
+
+    .auth-title {
+      margin: 0 0 6px;
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .auth-sub {
+      margin: 0 0 20px;
+      color: var(--muted);
+      font-size: 13.5px;
+      line-height: 1.45;
+    }
+
+    .field-group {
+      text-align: left;
+      margin-bottom: 14px;
+    }
+
+    .field-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .input {
+      width: 100%;
+      padding: 13px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: #0B1120;
+      color: var(--text);
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.16);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border: none;
+      border-radius: 12px;
+      padding: 13px 16px;
+      font-size: 14.5px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.12s, opacity 0.15s, background 0.15s;
+    }
+
+    .btn:active { transform: scale(0.98); }
+    .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    .btn-primary {
+      width: 100%;
+      background: linear-gradient(135deg, #38BDF8, #2563EB);
+      color: #FFFFFF;
+      box-shadow: 0 8px 22px rgba(37, 99, 235, 0.35);
+    }
+
+    .btn-secondary {
+      background: var(--bg-hover);
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.16);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      color: #FCA5A5;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--accent);
+      padding: 8px 10px;
+      font-size: 13px;
+    }
+
+    .alert-box {
+      text-align: left;
+      padding: 12px 14px;
+      border-radius: 12px;
+      font-size: 13px;
+      line-height: 1.45;
+      margin-bottom: 14px;
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      color: #FECACA;
+    }
+
+    .alert-info {
+      background: rgba(56, 189, 248, 0.1);
+      border-color: rgba(56, 189, 248, 0.35);
+      color: #BAE6FD;
+    }
+
+    .auth-footer {
+      margin-top: 18px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11.5px;
+      color: var(--muted);
+    }
+
+    /* ---------- WORKSPACE LAYOUT ---------- */
+    #appScreen {
+      display: grid;
+      grid-template-columns: 270px 1fr 310px;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    /* Sidebar (Vaults) */
+    .sidebar {
+      background: var(--bg-elev);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      z-index: 30;
+    }
+
+    .sidebar-head {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .sidebar-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 800;
+      font-size: 16px;
+    }
+
+    .sidebar-brand span {
+      color: var(--accent);
+      font-size: 11px;
+      display: block;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+    }
+
+    .vault-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .vault-item {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      padding: 12px;
+      border-radius: 13px;
+      border: 1px solid transparent;
+      background: rgba(255, 255, 255, 0.02);
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .vault-item:hover { background: var(--bg-hover); }
+    .vault-item.active {
+      background: rgba(56, 189, 248, 0.14);
+      border-color: var(--border-strong);
+    }
+
+    .vault-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 11px;
+      display: grid;
+      place-items: center;
+      font-size: 17px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #1E293B, #0F172A);
+      border: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .vault-meta {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .vault-name {
+      font-size: 14px;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .vault-sub {
+      font-size: 11.5px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .sidebar-foot {
+      padding: 12px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    /* Main Workspace */
+    .main-pane {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-width: 0;
+      position: relative;
+      background: var(--bg);
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      background: rgba(17, 24, 39, 0.92);
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(10px);
+    }
+
+    .icon-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 11px;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      color: var(--text);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      font-size: 18px;
+    }
+
+    .icon-btn:active { transform: scale(0.95); }
+
+    #mobileMenuBtn { display: none; }
+
+    .topbar-title-wrap {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .topbar-title {
+      font-size: 16px;
+      font-weight: 800;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .topbar-sub {
+      font-size: 11.5px;
+      color: var(--muted);
+    }
+
+    .toolbar {
+      padding: 12px 16px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .search-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .search-input {
+      flex: 1;
+      padding: 11px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--bg-elev);
+      color: var(--text);
+      font-size: 14px;
+      outline: none;
+    }
+
+    .search-input:focus { border-color: var(--accent); }
+
+    .chips {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      scrollbar-width: none;
+    }
+    .chips::-webkit-scrollbar { display: none; }
+
+    .chip {
+      padding: 7px 13px;
+      border-radius: 999px;
+      font-size: 12.5px;
+      font-weight: 700;
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .chip.active {
+      background: rgba(56, 189, 248, 0.16);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* Upload Progress Bar */
+    .progress-banner {
+      margin: 0 16px 8px;
+      padding: 10px 14px;
+      border-radius: 12px;
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      font-size: 12.5px;
+    }
+
+    .progress-track {
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.1);
+      overflow: hidden;
+      margin-top: 7px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #38BDF8, #2563EB);
+      transition: width 0.2s;
+    }
+
+    /* Files Grid */
+    .files-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 16px 96px;
+    }
+
+    .files-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(152px, 1fr));
+      gap: 12px;
+    }
+
+    .file-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 15px;
+      overflow: hidden;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      transition: border-color 0.15s, transform 0.12s;
+    }
+
+    .file-card:active { transform: scale(0.98); }
+    .file-card.selected {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+    }
+
+    .file-thumb {
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      background: #0B1120;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      position: relative;
+      font-size: 32px;
+    }
+
+    .file-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .file-ext-badge {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      padding: 3px 7px;
+      border-radius: 6px;
+      background: rgba(9, 13, 22, 0.8);
+      border: 1px solid var(--border);
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+
+    .file-info {
+      padding: 10px 11px;
+    }
+
+    .file-name {
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .file-meta {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 3px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 56px 20px;
+      color: var(--muted);
+    }
+
+    .empty-state .emoji { font-size: 46px; margin-bottom: 10px; }
+    .empty-state h3 { margin: 0 0 6px; color: var(--text); font-size: 17px; }
+    .empty-state p { margin: 0; font-size: 13.5px; line-height: 1.5; }
+
+    /* FAB Upload */
+    .fab-upload {
+      position: absolute;
+      right: 18px;
+      bottom: 20px;
+      height: 56px;
+      padding: 0 20px;
+      border-radius: 999px;
+      border: none;
+      background: linear-gradient(135deg, #38BDF8, #2563EB);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 12px 30px rgba(37, 99, 235, 0.45);
+      cursor: pointer;
+      z-index: 20;
+    }
+
+    .fab-upload:active { transform: scale(0.95); }
+
+    /* Inspector Panel */
+    .inspector {
+      background: var(--bg-elev);
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      padding: 16px;
+      overflow-y: auto;
+      z-index: 35;
+    }
+
+    .inspector-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .inspector-preview {
+      width: 100%;
+      aspect-ratio: 16 / 11;
+      border-radius: 14px;
+      background: #0B1120;
+      border: 1px solid var(--border);
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      margin-bottom: 14px;
+      cursor: pointer;
+    }
+
+    .inspector-preview img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .meta-table {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 16px;
+      font-size: 13px;
+    }
+
+    .meta-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .meta-row span:first-child { color: var(--muted); }
+    .meta-row span:last-child { font-weight: 700; text-align: right; word-break: break-word; }
+
+    .inspector-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      margin-top: auto;
+    }
+
+    /* Overlay & Modals */
+    .drawer-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.62);
+      backdrop-filter: blur(3px);
+      z-index: 28;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.72);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      z-index: 80;
+    }
+
+    .modal-card {
+      width: 100%;
+      max-width: 420px;
+      max-height: 88vh;
+      overflow-y: auto;
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: var(--shadow);
+    }
+
+    .modal-title {
+      margin: 0 0 6px;
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    .modal-sub {
+      margin: 0 0 16px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .tab-switch {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      background: #0B1120;
+      padding: 5px;
+      border-radius: 12px;
+      margin-bottom: 16px;
+    }
+
+    .tab-btn {
+      padding: 9px;
+      border-radius: 9px;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .tab-btn.active {
+      background: var(--bg-hover);
+      color: var(--accent);
+    }
+
+    .channel-list {
+      max-height: 190px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      margin-bottom: 14px;
+    }
+
+    .channel-opt {
+      padding: 10px 12px;
+      border-radius: 11px;
+      border: 1px solid var(--border);
+      background: #0B1120;
+      text-align: left;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13.5px;
+    }
+
+    .channel-opt.selected {
+      border-color: var(--accent);
+      background: rgba(56, 189, 248, 0.14);
+    }
+
+    /* Fullscreen Lightbox */
+    #lightbox {
+      position: fixed;
+      inset: 0;
+      background: rgba(5, 8, 15, 0.97);
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .lb-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 12px 14px;
+      background: rgba(17, 24, 39, 0.9);
+      border-bottom: 1px solid var(--border);
+      z-index: 2;
+    }
+
+    .lb-title {
+      font-size: 14px;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex: 1;
+    }
+
+    .lb-controls {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .lb-stage {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      touch-action: none;
+    }
+
+    #lbImg {
+      max-width: 96%;
+      max-height: 92%;
+      object-fit: contain;
+      transform-origin: center center;
+      transition: transform 0.08s ease-out;
+      will-change: transform;
+    }
+
+    .lb-status {
+      position: absolute;
+      bottom: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 7px 14px;
+      border-radius: 999px;
+      background: rgba(17, 24, 39, 0.9);
+      border: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--accent);
+    }
+
+    /* Toast */
+    #toast {
+      position: fixed;
+      left: 50%;
+      bottom: 84px;
+      transform: translateX(-50%);
+      background: #1E293B;
+      border: 1px solid var(--border-strong);
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: var(--shadow);
+      z-index: 10000;
+      max-width: 90%;
+      text-align: center;
+    }
+
+    /* ---------- MOBILE RESPONSIVE (<= 900px) ---------- */
+    @media (max-width: 900px) {
+      #appScreen {
+        grid-template-columns: 1fr;
+      }
+
+      #mobileMenuBtn {
+        display: grid;
+      }
+
+      .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 82%;
+        max-width: 310px;
+        transform: translateX(-105%);
+        transition: transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+        box-shadow: var(--shadow);
+      }
+
+      .sidebar.open {
+        transform: translateX(0);
+      }
+
+      .inspector {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        top: auto;
+        height: auto;
+        max-height: 82vh;
+        border-left: none;
+        border-top: 1px solid var(--border-strong);
+        border-radius: 22px 22px 0 0;
+        transform: translateY(110%);
+        transition: transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+        box-shadow: 0 -16px 40px rgba(0, 0, 0, 0.6);
+      }
+
+      .inspector.open {
+        transform: translateY(0);
+      }
+
+      .files-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ================= AUTH SCREEN ================= -->
+  <section id="authScreen">
+    <div class="auth-card">
+      <div class="brand-logo">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>
+          <path d="m13 11-2 4h3l-2 4" stroke="#F8FAFC" stroke-width="2.1"/>
+        </svg>
+      </div>
+      <div class="brand-badge">SSD SYNC • NEXUSCLOUD</div>
+      <h1 class="auth-title">Conectar Nuvem SSD</h1>
+      <p class="auth-sub">Entre com seu número para acessar seus cofres privados sincronizados com a Web e Android.</p>
+
+      <div id="engineErrorBox" class="alert-box hidden"></div>
+      <div id="authStatusBox" class="alert-box alert-info hidden"></div>
+
+      <!-- API Config Box -->
+      <div id="apiConfigBox" class="hidden" style="margin-bottom: 14px; padding: 12px; border-radius: 12px; background: #0B1120; border: 1px solid var(--border);">
+        <div class="field-group">
+          <label class="field-label" for="apiIdInput">API ID</label>
+          <input id="apiIdInput" class="input" type="number" placeholder="Ex: 2040" />
+        </div>
+        <div class="field-group" style="margin-bottom: 10px;">
+          <label class="field-label" for="apiHashInput">API Hash</label>
+          <input id="apiHashInput" class="input" type="text" placeholder="Seu api_hash" />
+        </div>
+        <button id="saveApiBtn" class="btn btn-secondary" style="width:100%;">Salvar Credenciais API</button>
+      </div>
+
+      <!-- Step 1: Phone -->
+      <div id="stepPhone">
+        <div class="field-group">
+          <label class="field-label" for="phoneInput">Número com DDI (+55)</label>
+          <input id="phoneInput" class="input" type="tel" placeholder="+55 85 99999-9999" autocomplete="tel" />
+        </div>
+        <button id="sendCodeBtn" class="btn btn-primary">Enviar Código de Acesso</button>
+      </div>
+
+      <!-- Step 2: Code -->
+      <div id="stepCode" class="hidden">
+        <div class="field-group">
+          <label class="field-label" for="codeInput">Código de 5 dígitos</label>
+          <input id="codeInput" class="input" type="number" inputmode="numeric" placeholder="12345" />
+        </div>
+        <button id="verifyCodeBtn" class="btn btn-primary">Confirmar Código</button>
+        <button id="backToPhoneBtn" class="btn btn-ghost" style="margin-top: 8px;">Alterar número</button>
+      </div>
+
+      <!-- Step 3: 2FA -->
+      <div id="stepPassword" class="hidden">
+        <div class="field-group">
+          <label class="field-label" for="passwordInput">Senha em Duas Etapas (2FA)</label>
+          <input id="passwordInput" class="input" type="password" placeholder="Digite sua senha 2FA" />
+        </div>
+        <button id="verifyPasswordBtn" class="btn btn-primary">Desbloquear Conta</button>
+      </div>
+
+      <div style="margin-top: 12px;">
+        <button id="toggleApiBtn" class="btn btn-ghost">Editar API ID / Hash</button>
+      </div>
+
+      <div class="auth-footer">
+        <span>Sessão Criptografada • GramJS</span>
+        <span>SSD Soluções 2026</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= WORKSPACE SCREEN ================= -->
+  <section id="appScreen" class="hidden">
+    <div id="drawerBackdrop" class="drawer-backdrop hidden"></div>
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-head">
+        <div class="sidebar-brand">
+          <div style="width:36px;height:36px;border-radius:10px;background:#090D16;border:1.5px solid var(--accent);display:grid;place-items:center;">⚡</div>
+          <div>
+            SSD Nexus
+            <span>NEXUSCLOUD v2.1</span>
+          </div>
+        </div>
+        <button id="closeSidebarBtn" class="icon-btn" style="width:34px;height:34px;font-size:15px;" title="Fechar">✕</button>
+      </div>
+
+      <div class="vault-list" id="vaultList"></div>
+
+      <div class="sidebar-foot">
+        <button id="openNewVaultBtn" class="btn btn-primary">+ Novo Cofre / Vincular</button>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <button id="aboutBtn" class="btn btn-secondary" style="padding:10px;font-size:12.5px;">Sobre</button>
+          <button id="logoutBtn" class="btn btn-danger" style="padding:10px;font-size:12.5px;">Sair</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Area -->
+    <main class="main-pane">
+      <header class="topbar">
+        <button id="mobileMenuBtn" class="icon-btn" aria-label="Cofres">☰</button>
+        <div class="topbar-title-wrap">
+          <div class="topbar-title" id="activeVaultTitle">Carregando...</div>
+          <div class="topbar-sub" id="activeVaultSub">Sincronizando nuvem SSD</div>
+        </div>
+        <button id="syncBtn" class="icon-btn" title="Sincronizar">↻</button>
+      </header>
+
+      <div class="toolbar">
+        <div class="search-row">
+          <input id="searchInput" class="search-input" type="search" placeholder="Buscar arquivos neste cofre..." />
+        </div>
+        <div class="chips" id="filterChips">
+          <button class="chip active" data-filter="all">Todos</button>
+          <button class="chip" data-filter="image">Imagens</button>
+          <button class="chip" data-filter="video">Vídeos</button>
+          <button class="chip" data-filter="doc">Documentos</button>
+          <button class="chip" data-filter="audio">Áudio</button>
+        </div>
+      </div>
+
+      <div id="progressBanner" class="progress-banner hidden">
+        <div id="progressText">Enviando arquivo...</div>
+        <div class="progress-track"><div id="progressFill" class="progress-fill"></div></div>
+      </div>
+
+      <div class="files-scroll">
+        <div id="filesGrid" class="files-grid"></div>
+        <div id="emptyState" class="empty-state hidden">
+          <div class="emoji">🔐</div>
+          <h3>Cofre 100% isolado e vazio</h3>
+          <p>Toque no botão <strong>+ Enviar</strong> abaixo para guardar fotos, vídeos ou documentos neste cofre privado.</p>
+        </div>
+      </div>
+
+      <input id="fileUploadInput" type="file" multiple class="hidden" />
+      <button id="fabUploadBtn" class="fab-upload">＋ Enviar</button>
+    </main>
+
+    <!-- Inspector Panel / Mobile Sheet -->
+    <aside id="inspector" class="inspector">
+      <div class="inspector-head">
+        <strong style="font-size:15px;">Detalhes do Arquivo</strong>
+        <button id="closeInspectorBtn" class="icon-btn" style="width:34px;height:34px;font-size:15px;">✕</button>
+      </div>
+
+      <div id="inspectorEmpty" class="empty-state" style="padding:36px 12px;">
+        <div class="emoji">📁</div>
+        <h3>Nenhum selecionado</h3>
+        <p>Toque em qualquer arquivo para visualizar detalhes, ampliar ou baixar.</p>
+      </div>
+
+      <div id="inspectorContent" class="hidden" style="display:flex;flex-direction:column;flex:1;">
+        <div id="inspectorPreview" class="inspector-preview"></div>
+        <div class="meta-table">
+          <div class="meta-row"><span>Arquivo</span><span id="metaName">-</span></div>
+          <div class="meta-row"><span>Tamanho</span><span id="metaSize">-</span></div>
+          <div class="meta-row"><span>Data</span><span id="metaDate">-</span></div>
+          <div class="meta-row"><span>Tipo</span><span id="metaType">-</span></div>
+        </div>
+        <div class="inspector-actions">
+          <button id="btnZoomImage" class="btn btn-primary hidden">🔍 Aumentar Imagem</button>
+          <button id="btnDownloadFile" class="btn btn-secondary">⬇ Baixar para o Celular</button>
+          <button id="btnDeleteFile" class="btn btn-danger">🗑 Excluir do Cofre</button>
+        </div>
+      </div>
+    </aside>
+  </section>
+
+  <!-- ================= MODAL: NEW / LINK VAULT ================= -->
+  <div id="vaultModal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <h2 class="modal-title">Cofres Privados Isolados</h2>
+      <p class="modal-sub">Cada cofre usa um canal privado exclusivo e sincroniza automaticamente entre Web e Android.</p>
+
+      <div class="tab-switch">
+        <button id="tabCreateVault" class="tab-btn active">Criar Novo</button>
+        <button id="tabLinkVault" class="tab-btn">Vincular Existente</button>
+      </div>
+
+      <div id="panelCreateVault">
+        <div class="field-group">
+          <label class="field-label" for="newVaultName">Nome do Cofre</label>
+          <input id="newVaultName" class="input" type="text" placeholder="Ex: Documentos, Pessoal, Trabalho" />
+        </div>
+      </div>
+
+      <div id="panelLinkVault" class="hidden">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <span class="field-label" style="margin:0;">Canais Privados da Conta</span>
+          <button id="refreshChannelsBtn" class="btn btn-ghost" style="padding:4px 8px;">Atualizar</button>
+        </div>
+        <div id="existingChannelsList" class="channel-list"></div>
+        <div class="field-group">
+          <label class="field-label" for="linkVaultName">Apelido do Cofre</label>
+          <input id="linkVaultName" class="input" type="text" placeholder="Nome exibido no app" />
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" for="vaultPinInput">PIN de Proteção (opcional, 4 a 8 dígitos)</label>
+        <input id="vaultPinInput" class="input" type="password" inputmode="numeric" placeholder="Deixe vazio para acesso direto" />
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;">
+        <button id="cancelVaultModalBtn" class="btn btn-secondary">Cancelar</button>
+        <button id="confirmVaultModalBtn" class="btn btn-primary">Salvar Cofre</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: PIN UNLOCK ================= -->
+  <div id="pinModal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <h2 class="modal-title" id="pinModalTitle">Cofre Protegido</h2>
+      <p class="modal-sub">Digite o PIN para descriptografar e abrir este cofre.</p>
+      <div id="pinErrorMsg" class="alert-box hidden">PIN incorreto. Tente novamente.</div>
+      <div class="field-group">
+        <input id="unlockPinInput" class="input" type="password" inputmode="numeric" placeholder="Digite o PIN" style="text-align:center;font-size:20px;letter-spacing:0.25em;" />
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <button id="cancelPinBtn" class="btn btn-secondary">Cancelar</button>
+        <button id="confirmPinBtn" class="btn btn-primary">Desbloquear</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: ABOUT ================= -->
+  <div id="aboutModal" class="modal-backdrop hidden">
+    <div class="modal-card" style="text-align:center;">
+      <div class="brand-badge">SSD NEXUS • ANDROID</div>
+      <h2 class="modal-title">SSD NexusCloud v2.1</h2>
+      <p class="modal-sub">Armazenamento pessoal criptografado em nuvem com cofres isolados por canal privado, PIN SHA-256 e sincronização instantânea Web + Android.</p>
+      <div style="padding:14px;border-radius:12px;background:#0B1120;border:1px solid var(--border);margin-bottom:16px;font-size:13.5px;line-height:1.6;">
+        <strong style="color:var(--accent);">Desenvolvedor:</strong><br/>
+        Josimar Sousa e SSD Soluções 2026
+      </div>
+      <button id="closeAboutBtn" class="btn btn-primary">Fechar</button>
+    </div>
+  </div>
+
+  <!-- ================= FULLSCREEN LIGHTBOX ================= -->
+  <div id="lightbox" class="hidden">
+    <div class="lb-bar">
+      <div class="lb-title" id="lbTitle">Imagem</div>
+      <div class="lb-controls">
+        <button id="lbZoomOut" class="icon-btn" style="width:36px;height:36px;">−</button>
+        <button id="lbZoomReset" class="icon-btn" style="width:36px;height:36px;font-size:12px;font-weight:800;">1x</button>
+        <button id="lbZoomIn" class="icon-btn" style="width:36px;height:36px;">＋</button>
+        <button id="lbDownload" class="icon-btn" style="width:36px;height:36px;">⬇</button>
+        <button id="lbClose" class="icon-btn" style="width:36px;height:36px;">✕</button>
+      </div>
+    </div>
+    <div id="lbStage" class="lb-stage">
+      <img id="lbImg" alt="Visualização em tela cheia" />
+      <div id="lbStatus" class="lb-status hidden">Carregando resolução completa...</div>
+    </div>
+  </div>
+
+  <div id="toast" class="hidden"></div>
+
+  <script>
+    (function () {
+      const VAULT_SYNC_TAG = "#SSD_NEXUS_VAULTS_V2";
+      const STORAGE_KEYS = {
+        API: "ssd_nexus_api_cfg_v2",
+        SESSION: "ssd_nexus_gramjs_session_v2",
+        VAULTS: "ssd_nexus_vaults_cache_v2",
+        ACTIVE_VAULT: "ssd_nexus_active_vault_v2"
+      };
+
+      const DEFAULT_API = {
+        apiId: 2040,
+        apiHash: "b18441a1ff607e10a989891a5462e627"
+      };
+
+      // State
+      let tgLib = null;
+      let client = null;
+      let vaults = [];
+      let activeVault = null;
+      let unlockedVaultIds = new Set();
+      let currentFiles = [];
+      let selectedFile = null;
+      let activeFilter = "all";
+      let thumbCache = new Map();
+      let fullImgCache = new Map();
+      let cloudSyncMsgId = null;
+
+      // Auth promise resolvers
+      let phoneCodeResolver = null;
+      let passwordResolver = null;
+
+      // Modal states
+      let vaultModalMode = "create";
+      let selectedLinkChannel = null;
+      let pendingUnlockVault = null;
+
+      // Lightbox transform state
+      let lbScale = 1, lbX = 0, lbY = 0;
+      let isDragging = false, dragStartX = 0, dragStartY = 0;
+      let lastTouchDist = 0, lastTapTime = 0;
+
+      const $ = (id) => document.getElementById(id);
+
+      function showToast(msg) {
+        if (window.AndroidBridge && typeof window.AndroidBridge.showToast === "function") {
+          window.AndroidBridge.showToast(msg);
+          return;
+        }
+        const t = $("toast");
+        t.textContent = msg;
+        t.classList.remove("hidden");
+        clearTimeout(t._timer);
+        t._timer = setTimeout(() => t.classList.add("hidden"), 3000);
+      }
+
+      function getApiConfig() {
+        try {
+          const saved = JSON.parse(localStorage.getItem(STORAGE_KEYS.API) || "null");
+          if (saved && saved.apiId && saved.apiHash) return saved;
+        } catch (_) {}
+        return { ...DEFAULT_API };
+      }
+
+      function saveApiConfig(apiId, apiHash) {
+        localStorage.setItem(STORAGE_KEYS.API, JSON.stringify({ apiId: Number(apiId), apiHash: String(apiHash).trim() }));
+      }
+
+      async function sha256(text) {
+        const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+        return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+      }
+
+      function formatBytes(bytes) {
+        if (!bytes) return "0 B";
+        const k = 1024;
+        const sizes = ["B", "KB", "MB", "GB"];
+        const i = Math.min(sizes.length - 1, Math.floor(Math.log(bytes) / Math.log(k)));
+        return (bytes / Math.pow(k, i)).toFixed(i === 0 ? 0 : 1) + " " + sizes[i];
+      }
+
+      function formatDate(ts) {
+        if (!ts) return "-";
+        const d = new Date(ts * 1000);
+        return d.toLocaleDateString("pt-BR") + " " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+      }
+
+      function detectGramJS() {
+        const lib = window.telegram || window.gramjs || null;
+        if (!lib || !lib.TelegramClient || !lib.Api) return null;
+        return lib;
+      }
+
+      function getBufferImpl() {
+        return window.Buffer || (tgLib && tgLib.Buffer) || null;
+      }
+
+      // ---------- ANDROID BACK BUTTON HANDLER ----------
+      window.handleAndroidBack = function () {
+        if (!$("lightbox").classList.contains("hidden")) {
+          closeLightbox();
+          return true;
+        }
+        if (!$("vaultModal").classList.contains("hidden")) {
+          $("vaultModal").classList.add("hidden");
+          return true;
+        }
+        if (!$("pinModal").classList.contains("hidden")) {
+          $("pinModal").classList.add("hidden");
+          return true;
+        }
+        if (!$("aboutModal").classList.contains("hidden")) {
+          $("aboutModal").classList.add("hidden");
+          return true;
+        }
+        if ($("inspector").classList.contains("open")) {
+          closeInspector();
+          return true;
+        }
+        if ($("sidebar").classList.contains("open")) {
+          closeSidebar();
+          return true;
+        }
+        return false;
+      };
+
+      function openSidebar() {
+        $("sidebar").classList.add("open");
+        $("drawerBackdrop").classList.remove("hidden");
+      }
+
+      function closeSidebar() {
+        $("sidebar").classList.remove("open");
+        if (!$("inspector").classList.contains("open")) {
+          $("drawerBackdrop").classList.add("hidden");
+        }
+      }
+
+      function openInspector() {
+        $("inspector").classList.add("open");
+        if (window.innerWidth <= 900) {
+          $("drawerBackdrop").classList.remove("hidden");
+        }
+      }
+
+      function closeInspector() {
+        $("inspector").classList.remove("open");
+        if (!$("sidebar").classList.contains("open")) {
+          $("drawerBackdrop").classList.add("hidden");
+        }
+      }
+
+      // ---------- AUTH FLOW ----------
+      function setAuthStatus(msg, isError = false) {
+        const box = $("authStatusBox");
+        if (!msg) {
+          box.classList.add("hidden");
+          return;
+        }
+        box.textContent = msg;
+        box.classList.remove("hidden");
+        box.classList.toggle("alert-info", !isError);
+      }
+
+      async function boot() {
+        tgLib = detectGramJS();
+        const cfg = getApiConfig();
+        $("apiIdInput").value = cfg.apiId;
+        $("apiHashInput").value = cfg.apiHash;
+
+        if (!tgLib) {
+          $("engineErrorBox").innerHTML = "<strong>Motor gramjs.js não carregado.</strong><br>Verifique se o build baixou o arquivo <code>assets/gramjs.js</code> corretamente.";
+          $("engineErrorBox").classList.remove("hidden");
+          $("sendCodeBtn").disabled = true;
+          return;
+        }
+
+        const savedSession = localStorage.getItem(STORAGE_KEYS.SESSION);
+        if (savedSession) {
+          setAuthStatus("Reconectando sessão segura SSD Nexus...");
+          try {
+            await connectClient(savedSession);
+            if (await client.checkAuthorization()) {
+              enterWorkspace();
+              return;
+            }
+          } catch (err) {
+            console.error(err);
+            setAuthStatus("Sessão expirada. Faça login novamente.", true);
+          }
+        }
+      }
+
+      async function connectClient(sessionStr) {
+        const cfg = getApiConfig();
+        const StringSession = tgLib.sessions ? tgLib.sessions.StringSession : tgLib.StringSession;
+        const session = new StringSession(sessionStr || "");
+        client = new tgLib.TelegramClient(session, Number(cfg.apiId), String(cfg.apiHash), {
+          connectionRetries: 5,
+          useWSS: true
+        });
+        await client.connect();
+      }
+
+      async function startPhoneLogin() {
+        const phone = $("phoneInput").value.trim();
+        if (!phone || phone.length < 8) {
+          setAuthStatus("Informe o número completo com DDI (ex: +5585999999999).", true);
+          return;
+        }
+
+        $("sendCodeBtn").disabled = true;
+        setAuthStatus("Conectando aos servidores seguros...");
+
+        try {
+          await connectClient("");
+          client.start({
+            phoneNumber: async () => phone,
+            phoneCode: async () => {
+              $("stepPhone").classList.add("hidden");
+              $("stepCode").classList.remove("hidden");
+              setAuthStatus("Código enviado para seu Telegram. Digite abaixo.");
+              return await new Promise((resolve) => { phoneCodeResolver = resolve; });
+            },
+            password: async () => {
+              $("stepCode").classList.add("hidden");
+              $("stepPassword").classList.remove("hidden");
+              setAuthStatus("Conta protegida por 2FA. Digite sua senha.");
+              return await new Promise((resolve) => { passwordResolver = resolve; });
+            },
+            onError: (err) => {
+              setAuthStatus("Erro: " + (err.message || err), true);
+              $("sendCodeBtn").disabled = false;
+            }
+          }).then(() => {
+            const sessionStr = client.session.save();
+            localStorage.setItem(STORAGE_KEYS.SESSION, sessionStr);
+            setAuthStatus("");
+            enterWorkspace();
+          }).catch((err) => {
+            setAuthStatus("Falha na autenticação: " + (err.message || err), true);
+            $("sendCodeBtn").disabled = false;
+          });
+        } catch (err) {
+          setAuthStatus("Erro ao conectar: " + (err.message || err), true);
+          $("sendCodeBtn").disabled = false;
+        }
+      }
+
+      // ---------- VAULTS & CLOUD SYNC (#SSD_NEXUS_VAULTS_V2) ----------
+      async function enterWorkspace() {
+        $("authScreen").classList.add("hidden");
+        $("appScreen").classList.remove("hidden");
+        await syncVaultsFromCloud();
+      }
+
+      async function syncVaultsFromCloud() {
+        $("activeVaultSub").textContent = "Sincronizando cofres na nuvem...";
+        try {
+          const localCached = JSON.parse(localStorage.getItem(STORAGE_KEYS.VAULTS) || "[]");
+          vaults = Array.isArray(localCached) ? localCached : [];
+
+          const msgs = await client.getMessages("me", { search: VAULT_SYNC_TAG, limit: 10 });
+          if (msgs && msgs.length > 0) {
+            const latest = msgs.find(m => m.message && m.message.includes(VAULT_SYNC_TAG));
+            if (latest) {
+              cloudSyncMsgId = latest.id;
+              const rawJson = latest.message.replace(VAULT_SYNC_TAG, "").trim();
+              const parsed = JSON.parse(rawJson);
+              if (Array.isArray(parsed)) {
+                vaults = parsed;
+                localStorage.setItem(STORAGE_KEYS.VAULTS, JSON.stringify(vaults));
+              }
+            }
+          }
+        } catch (e) {
+          console.warn("Erro ao sincronizar cofres:", e);
+        }
+
+        if (vaults.length === 0) {
+          // Ensure a clean default view prompting creation or saved messages
+          renderVaultList();
+          $("activeVaultTitle").textContent = "Crie seu 1º Cofre";
+          $("activeVaultSub").textContent = "Cada cofre nasce zerado em canal privado";
+          $("filesGrid").innerHTML = "";
+          $("emptyState").classList.remove("hidden");
+          return;
+        }
+
+        renderVaultList();
+        const savedActiveId = localStorage.getItem(STORAGE_KEYS.ACTIVE_VAULT);
+        const target = vaults.find(v => String(v.id) === String(savedActiveId)) || vaults[0];
+        selectVault(target);
+      }
+
+      async function saveVaultsToCloud() {
+        localStorage.setItem(STORAGE_KEYS.VAULTS, JSON.stringify(vaults));
+        const payload = `${VAULT_SYNC_TAG}\n${JSON.stringify(vaults)}`;
+        try {
+          if (cloudSyncMsgId) {
+            await client.editMessage("me", { message: cloudSyncMsgId, text: payload });
+          } else {
+            const sent = await client.sendMessage("me", { message: payload });
+            if (sent && sent.id) cloudSyncMsgId = sent.id;
+          }
+        } catch (_) {
+          try {
+            const sent = await client.sendMessage("me", { message: payload });
+            if (sent && sent.id) cloudSyncMsgId = sent.id;
+          } catch (err) {
+            console.error("Erro ao salvar índice de cofres na nuvem:", err);
+          }
+        }
+      }
+
+      function renderVaultList() {
+        const list = $("vaultList");
+        list.innerHTML = "";
+        vaults.forEach((v) => {
+          const el = document.createElement("div");
+          el.className = "vault-item" + (activeVault && activeVault.id === v.id ? " active" : "");
+          const hasPin = Boolean(v.pinHash);
+          el.innerHTML = `
+            <div class="vault-icon">${hasPin ? "🔒" : "☁️"}</div>
+            <div class="vault-meta">
+              <div class="vault-name">${escapeHtml(v.name)}</div>
+              <div class="vault-sub">${hasPin ? "Protegido por PIN" : "Canal Privado"}</div>
+            </div>
+          `;
+          el.addEventListener("click", () => {
+            closeSidebar();
+            selectVault(v);
+          });
+          list.appendChild(el);
+        });
+      }
+
+      function selectVault(vault) {
+        if (!vault) return;
+        if (vault.pinHash && !unlockedVaultIds.has(vault.id)) {
+          pendingUnlockVault = vault;
+          $("pinModalTitle").textContent = `Abrir "${vault.name}"`;
+          $("unlockPinInput").value = "";
+          $("pinErrorMsg").classList.add("hidden");
+          $("pinModal").classList.remove("hidden");
+          setTimeout(() => $("unlockPinInput").focus(), 120);
+          return;
+        }
+        activeVault = vault;
+        localStorage.setItem(STORAGE_KEYS.ACTIVE_VAULT, vault.id);
+        renderVaultList();
+        $("activeVaultTitle").textContent = vault.name;
+        $("activeVaultSub").textContent = "Canal privado isolado";
+        loadVaultFiles();
+      }
+
+      async function resolveVaultEntity(vault) {
+        if (vault.channelId) {
+          const dialogs = await client.getDialogs({ limit: 100 });
+          const match = dialogs.find(d => {
+            const ent = d.entity;
+            if (!ent) return false;
+            const rawId = String(ent.id || "").replace(/^-100/, "");
+            const targetId = String(vault.channelId).replace(/^-100/, "");
+            return rawId === targetId;
+          });
+          if (match) return match.inputEntity || match.entity;
+          try {
+            return await client.getEntity(BigInt("-100" + String(vault.channelId).replace(/^-100/, "")));
+          } catch (_) {
+            return await client.getInputEntity(Number(vault.channelId));
+          }
+        }
+        return "me";
+      }
+
+      async function loadVaultFiles() {
+        if (!activeVault) return;
+        $("activeVaultSub").textContent = "Carregando arquivos...";
+        currentFiles = [];
+        selectedFile = null;
+        resetInspector();
+
+        try {
+          const entity = await resolveVaultEntity(activeVault);
+          const messages = await client.getMessages(entity, { limit: 100 });
+          currentFiles = messages
+            .filter(m => m.media && (m.photo || m.document))
+            .map(parseMessageFile);
+
+          $("activeVaultSub").textContent = `${currentFiles.length} arquivo(s) no cofre`;
+          renderFiles();
+        } catch (err) {
+          console.error(err);
+          $("activeVaultSub").textContent = "Erro ao carregar canal";
+          showToast("Erro ao ler cofre: " + (err.message || err));
+        }
+      }
+
+      function parseMessageFile(msg) {
+        let name = `arquivo_${msg.id}`;
+        let size = 0;
+        let mime = "application/octet-stream";
+        let kind = "doc";
+
+        if (msg.photo) {
+          name = `foto_${msg.id}.jpg`;
+          mime = "image/jpeg";
+          kind = "image";
+          if (msg.photo.sizes && msg.photo.sizes.length) {
+            const last = msg.photo.sizes[msg.photo.sizes.length - 1];
+            size = last.size || 0;
+          }
+        } else if (msg.document) {
+          mime = msg.document.mimeType || mime;
+          size = Number(msg.document.size || 0);
+          const attrs = msg.document.attributes || [];
+          const fileAttr = attrs.find(a => a.fileName);
+          if (fileAttr && fileAttr.fileName) name = fileAttr.fileName;
+          else if (mime.startsWith("video/")) name = `video_${msg.id}.mp4`;
+          else if (mime.startsWith("audio/")) name = `audio_${msg.id}.mp3`;
+          else if (mime.startsWith("image/")) name = `imagem_${msg.id}.png`;
+
+          if (mime.startsWith("image/")) kind = "image";
+          else if (mime.startsWith("video/")) kind = "video";
+          else if (mime.startsWith("audio/")) kind = "audio";
+          else kind = "doc";
+        }
+
+        const ext = (name.includes(".") ? name.split(".").pop() : kind).slice(0, 5);
+        return { id: msg.id, msg, name, size, mime, kind, ext, date: msg.date };
+      }
+
+      function renderFiles() {
+        const grid = $("filesGrid");
+        const q = $("searchInput").value.trim().toLowerCase();
+        const filtered = currentFiles.filter(f => {
+          const matchKind = activeFilter === "all" || f.kind === activeFilter;
+          const matchQuery = !q || f.name.toLowerCase().includes(q);
+          return matchKind && matchQuery;
+        });
+
+        grid.innerHTML = "";
+        if (filtered.length === 0) {
+          $("emptyState").classList.remove("hidden");
+          return;
+        }
+        $("emptyState").classList.add("hidden");
+
+        filtered.forEach((f) => {
+          const card = document.createElement("div");
+          card.className = "file-card" + (selectedFile && selectedFile.id === f.id ? " selected" : "");
+          const emoji = f.kind === "image" ? "🖼️" : f.kind === "video" ? "🎬" : f.kind === "audio" ? "🎵" : "📄";
+          card.innerHTML = `
+            <div class="file-thumb" id="thumb-${f.id}">
+              <span>${emoji}</span>
+              <span class="file-ext-badge">${escapeHtml(f.ext)}</span>
+            </div>
+            <div class="file-info">
+              <div class="file-name">${escapeHtml(f.name)}</div>
+              <div class="file-meta">
+                <span>${formatBytes(f.size)}</span>
+                <span>${f.kind}</span>
+              </div>
+            </div>
+          `;
+          card.addEventListener("click", () => selectFile(f));
+          grid.appendChild(card);
+
+          if (f.kind === "image") {
+            loadThumbnail(f);
+          }
+        });
+      }
+
+      async function loadThumbnail(file) {
+        const key = `${activeVault.id}_${file.id}`;
+        const container = document.getElementById(`thumb-${file.id}`);
+        if (!container) return;
+
+        if (thumbCache.has(key)) {
+          applyThumbUrl(container, thumbCache.get(key), file.ext);
+          return;
+        }
+        try {
+          const data = await client.downloadMedia(file.msg, { thumb: 1 });
+          if (!data || !data.length) return;
+          const blob = new Blob([data], { type: file.mime || "image/jpeg" });
+          const url = URL.createObjectURL(blob);
+          thumbCache.set(key, url);
+          const freshContainer = document.getElementById(`thumb-${file.id}`);
+          if (freshContainer) applyThumbUrl(freshContainer, url, file.ext);
+        } catch (_) {}
+      }
+
+      function applyThumbUrl(container, url, ext) {
+        container.innerHTML = `<img src="${url}" alt="thumb" /><span class="file-ext-badge">${escapeHtml(ext)}</span>`;
+      }
+
+      function resetInspector() {
+        $("inspectorEmpty").classList.remove("hidden");
+        $("inspectorContent").classList.add("hidden");
+      }
+
+      function selectFile(file) {
+        selectedFile = file;
+        renderFiles();
+        $("inspectorEmpty").classList.add("hidden");
+        $("inspectorContent").classList.remove("hidden");
+        $("metaName").textContent = file.name;
+        $("metaSize").textContent = formatBytes(file.size);
+        $("metaDate").textContent = formatDate(file.date);
+        $("metaType").textContent = file.mime;
+
+        const preview = $("inspectorPreview");
+        const key = `${activeVault.id}_${file.id}`;
+        if (file.kind === "image") {
+          $("btnZoomImage").classList.remove("hidden");
+          const url = fullImgCache.get(key) || thumbCache.get(key);
+          preview.innerHTML = url ? `<img src="${url}" alt="preview" />` : `<div style="font-size:44px;">🖼️</div>`;
+          preview.onclick = () => openLightbox(file);
+        } else {
+          $("btnZoomImage").classList.add("hidden");
+          const icon = file.kind === "video" ? "🎬" : file.kind === "audio" ? "🎵" : "📄";
+          preview.innerHTML = `<div style="font-size:48px;">${icon}</div>`;
+          preview.onclick = null;
+        }
+
+        openInspector();
+      }
+
+      // ---------- UPLOAD ----------
+      async function handleFileUpload(fileList) {
+        if (!activeVault) {
+          showToast("Crie ou selecione um cofre primeiro.");
+          return;
+        }
+        const files = Array.from(fileList || []);
+        if (!files.length) return;
+
+        const banner = $("progressBanner");
+        const text = $("progressText");
+        const fill = $("progressFill");
+        banner.classList.remove("hidden");
+
+        try {
+          const entity = await resolveVaultEntity(activeVault);
+          const BufferImpl = getBufferImpl();
+
+          for (let i = 0; i < files.length; i++) {
+            const f = files[i];
+            text.textContent = `Enviando (${i + 1}/${files.length}): ${f.name}`;
+            fill.style.width = "5%";
+
+            let filePayload = f;
+            if (BufferImpl) {
+              const arrayBuf = await f.arrayBuffer();
+              filePayload = BufferImpl.from(new Uint8Array(arrayBuf));
+              filePayload.name = f.name;
+            }
+
+            await client.sendFile(entity, {
+              file: filePayload,
+              caption: f.name,
+              forceDocument: !f.type.startsWith("image/"),
+              progressCallback: (p) => {
+                const pct = Math.max(5, Math.min(100, Math.round(p * 100)));
+                fill.style.width = pct + "%";
+              }
+            });
+          }
+
+          showToast(`${files.length} arquivo(s) salvo(s) no cofre!`);
+          await loadVaultFiles();
+        } catch (err) {
+          console.error(err);
+          showToast("Erro no upload: " + (err.message || err));
+        } finally {
+          banner.classList.add("hidden");
+          fill.style.width = "0%";
+          $("fileUploadInput").value = "";
+        }
+      }
+
+      // ---------- DOWNLOAD (NATIVE ANDROID BRIDGE + WEB FALLBACK) ----------
+      function uint8ToBase64(bytes) {
+        let binary = "";
+        const chunk = 0x8000;
+        for (let i = 0; i < bytes.length; i += chunk) {
+          binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+        }
+        return btoa(binary);
+      }
+
+      async function downloadFile(file) {
+        if (!file) return;
+        const banner = $("progressBanner");
+        const text = $("progressText");
+        const fill = $("progressFill");
+        banner.classList.remove("hidden");
+        text.textContent = `Baixando: ${file.name}`;
+        fill.style.width = "10%";
+
+        try {
+          const data = await client.downloadMedia(file.msg, {
+            progressCallback: (received, total) => {
+              if (total) {
+                const pct = Math.min(98, Math.round((Number(received) / Number(total)) * 100));
+                fill.style.width = pct + "%";
+              }
+            }
+          });
+
+          const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
+          fill.style.width = "100%";
+
+          // Android APK native Downloads/SSD Nexus bridge
+          if (window.AndroidBridge && typeof window.AndroidBridge.startFileSave === "function") {
+            const transferId = "dl_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7);
+            const started = window.AndroidBridge.startFileSave(transferId, file.name, file.mime);
+            if (!started) throw new Error("Falha ao abrir arquivo em Downloads.");
+
+            const CHUNK_SIZE = 256 * 1024;
+            for (let offset = 0; offset < bytes.length; offset += CHUNK_SIZE) {
+              const slice = bytes.subarray(offset, Math.min(offset + CHUNK_SIZE, bytes.length));
+              const ok = window.AndroidBridge.appendFileChunk(transferId, uint8ToBase64(slice));
+              if (!ok) {
+                window.AndroidBridge.cancelFileSave(transferId);
+                throw new Error("Erro ao gravar bloco do arquivo.");
+              }
+            }
+            window.AndroidBridge.finishFileSave(transferId);
+          } else {
+            // Browser fallback
+            const blob = new Blob([bytes], { type: file.mime });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = file.name;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 5000);
+            showToast("Download iniciado: " + file.name);
+          }
+        } catch (err) {
+          console.error(err);
+          showToast("Erro ao baixar: " + (err.message || err));
+        } finally {
+          banner.classList.add("hidden");
+          fill.style.width = "0%";
+        }
+      }
+
+      async function deleteFile(file) {
+        if (!file || !activeVault) return;
+        if (!confirm(`Excluir "${file.name}" permanentemente deste cofre?`)) return;
+        try {
+          const entity = await resolveVaultEntity(activeVault);
+          await client.deleteMessages(entity, [file.id], { revoke: true });
+          showToast("Arquivo excluído.");
+          closeInspector();
+          await loadVaultFiles();
+        } catch (err) {
+          showToast("Erro ao excluir: " + (err.message || err));
+        }
+      }
+
+      // ---------- FULLSCREEN LIGHTBOX (ZOOM / PAN / PINCH) ----------
+      function applyLbTransform() {
+        $("lbImg").style.transform = `translate(${lbX}px, ${lbY}px) scale(${lbScale})`;
+        $("lbZoomReset").textContent = `${lbScale.toFixed(1).replace(/\.0$/, "")}x`;
+      }
+
+      function resetLbTransform() {
+        lbScale = 1; lbX = 0; lbY = 0;
+        applyLbTransform();
+      }
+
+      async function openLightbox(file) {
+        if (!file) return;
+        $("lbTitle").textContent = file.name;
+        $("lightbox").classList.remove("hidden");
+        resetLbTransform();
+
+        const key = `${activeVault.id}_${file.id}`;
+        const cachedFull = fullImgCache.get(key);
+        const cachedThumb = thumbCache.get(key);
+
+        if (cachedFull) {
+          $("lbImg").src = cachedFull;
+          $("lbStatus").classList.add("hidden");
+          return;
+        }
+
+        if (cachedThumb) $("lbImg").src = cachedThumb;
+        $("lbStatus").textContent = "Carregando resolução completa...";
+        $("lbStatus").classList.remove("hidden");
+
+        try {
+          const data = await client.downloadMedia(file.msg, {});
+          if (data && data.length) {
+            const blob = new Blob([data], { type: file.mime || "image/jpeg" });
+            const url = URL.createObjectURL(blob);
+            fullImgCache.set(key, url);
+            $("lbImg").src = url;
+          }
+        } catch (_) {}
+        $("lbStatus").classList.add("hidden");
+      }
+
+      function closeLightbox() {
+        $("lightbox").classList.add("hidden");
+      }
+
+      // ---------- CREATE / LINK VAULT MODAL ----------
+      async function loadExistingChannels() {
+        const box = $("existingChannelsList");
+        box.innerHTML = `<div style="color:var(--muted);font-size:13px;padding:10px;">Buscando canais privados da conta...</div>`;
+        selectedLinkChannel = null;
+        try {
+          const dialogs = await client.getDialogs({ limit: 80 });
+          const channels = dialogs.filter(d => d.isChannel && d.entity);
+          if (!channels.length) {
+            box.innerHTML = `<div style="color:var(--muted);font-size:13px;padding:10px;">Nenhum canal encontrado.</div>`;
+            return;
+          }
+          box.innerHTML = "";
+          channels.forEach((d) => {
+            const cid = String(d.entity.id).replace(/^-100/, "");
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "channel-opt";
+            btn.innerHTML = `<span>${escapeHtml(d.title || "Canal " + cid)}</span><span style="color:var(--muted);font-size:11px;">#${cid}</span>`;
+            btn.addEventListener("click", () => {
+              box.querySelectorAll(".channel-opt").forEach(b => b.classList.remove("selected"));
+              btn.classList.add("selected");
+              selectedLinkChannel = { id: cid, title: d.title || "Cofre" };
+              if (!$("linkVaultName").value.trim()) {
+                $("linkVaultName").value = d.title.replace(/^SSD Nexus\s*[•-]\s*/i, "");
+              }
+            });
+            box.appendChild(btn);
+          });
+        } catch (err) {
+          box.innerHTML = `<div style="color:#FCA5A5;font-size:13px;padding:10px;">Erro: ${escapeHtml(err.message || err)}</div>`;
+        }
+      }
+
+      async function confirmVaultModal() {
+        const pin = $("vaultPinInput").value.trim();
+        const pinHash = pin ? await sha256(pin) : "";
+        $("confirmVaultModalBtn").disabled = true;
+
+        try {
+          let newVault = null;
+          if (vaultModalMode === "create") {
+            const name = $("newVaultName").value.trim();
+            if (!name) {
+              showToast("Digite um nome para o cofre.");
+              return;
+            }
+            showToast("Criando canal privado isolado...");
+            const res = await client.invoke(new tgLib.Api.channels.CreateChannel({
+              title: `SSD Nexus • ${name}`,
+              about: "Cofre privado criptografado SSD Nexus",
+              broadcast: true,
+              megagroup: false
+            }));
+            const createdChat = res.chats && res.chats[0];
+            if (!createdChat) throw new Error("Canal não retornado pelo servidor.");
+            const channelId = String(createdChat.id).replace(/^-100/, "");
+            newVault = { id: "v_" + Date.now(), name, channelId, pinHash };
+          } else {
+            if (!selectedLinkChannel) {
+              showToast("Selecione um canal na lista.");
+              return;
+            }
+            const name = $("linkVaultName").value.trim() || selectedLinkChannel.title;
+            newVault = { id: "v_" + Date.now(), name, channelId: selectedLinkChannel.id, pinHash };
+          }
+
+          vaults.push(newVault);
+          if (pinHash) unlockedVaultIds.add(newVault.id);
+          await saveVaultsToCloud();
+          $("vaultModal").classList.add("hidden");
+          $("newVaultName").value = "";
+          $("linkVaultName").value = "";
+          $("vaultPinInput").value = "";
+          showToast(`Cofre "${newVault.name}" pronto!`);
+          selectVault(newVault);
+        } catch (err) {
+          console.error(err);
+          showToast("Erro ao criar cofre: " + (err.message || err));
+        } finally {
+          $("confirmVaultModalBtn").disabled = false;
+        }
+      }
+
+      function escapeHtml(str) {
+        return String(str || "").replace(/[&<>"']/g, (m) => ({
+          "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+        }[m]));
+      }
+
+      // ---------- EVENT LISTENERS ----------
+      $("toggleApiBtn").addEventListener("click", () => $("apiConfigBox").classList.toggle("hidden"));
+      $("saveApiBtn").addEventListener("click", () => {
+        saveApiConfig($("apiIdInput").value, $("apiHashInput").value);
+        $("apiConfigBox").classList.add("hidden");
+        showToast("Credenciais API salvas.");
+      });
+
+      $("sendCodeBtn").addEventListener("click", startPhoneLogin);
+      $("verifyCodeBtn").addEventListener("click", () => {
+        const code = $("codeInput").value.trim();
+        if (code && phoneCodeResolver) {
+          const fn = phoneCodeResolver;
+          phoneCodeResolver = null;
+          fn(code);
+        }
+      });
+      $("backToPhoneBtn").addEventListener("click", () => location.reload());
+      $("verifyPasswordBtn").addEventListener("click", () => {
+        const pwd = $("passwordInput").value;
+        if (pwd && passwordResolver) {
+          const fn = passwordResolver;
+          passwordResolver = null;
+          fn(pwd);
+        }
+      });
+
+      $("mobileMenuBtn").addEventListener("click", openSidebar);
+      $("closeSidebarBtn").addEventListener("click", closeSidebar);
+      $("closeInspectorBtn").addEventListener("click", closeInspector);
+      $("drawerBackdrop").addEventListener("click", () => { closeSidebar(); closeInspector(); });
+
+      $("syncBtn").addEventListener("click", () => {
+        showToast("Sincronizando...");
+        syncVaultsFromCloud();
+      });
+
+      $("searchInput").addEventListener("input", renderFiles);
+      $("filterChips").addEventListener("click", (e) => {
+        const chip = e.target.closest(".chip");
+        if (!chip) return;
+        $("filterChips").querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
+        chip.classList.add("active");
+        activeFilter = chip.dataset.filter;
+        renderFiles();
+      });
+
+      $("fabUploadBtn").addEventListener("click", () => $("fileUploadInput").click());
+      $("fileUploadInput").addEventListener("change", (e) => handleFileUpload(e.target.files));
+
+      $("btnZoomImage").addEventListener("click", () => openLightbox(selectedFile));
+      $("btnDownloadFile").addEventListener("click", () => downloadFile(selectedFile));
+      $("btnDeleteFile").addEventListener("click", () => deleteFile(selectedFile));
+
+      $("openNewVaultBtn").addEventListener("click", () => {
+        closeSidebar();
+        $("vaultModal").classList.remove("hidden");
+      });
+      $("cancelVaultModalBtn").addEventListener("click", () => $("vaultModal").classList.add("hidden"));
+      $("confirmVaultModalBtn").addEventListener("click", confirmVaultModal);
+
+      $("tabCreateVault").addEventListener("click", () => {
+        vaultModalMode = "create";
+        $("tabCreateVault").classList.add("active");
+        $("tabLinkVault").classList.remove("active");
+        $("panelCreateVault").classList.remove("hidden");
+        $("panelLinkVault").classList.add("hidden");
+      });
+      $("tabLinkVault").addEventListener("click", () => {
+        vaultModalMode = "link";
+        $("tabLinkVault").classList.add("active");
+        $("tabCreateVault").classList.remove("active");
+        $("panelLinkVault").classList.remove("hidden");
+        $("panelCreateVault").classList.add("hidden");
+        loadExistingChannels();
+      });
+      $("refreshChannelsBtn").addEventListener("click", loadExistingChannels);
+
+      $("cancelPinBtn").addEventListener("click", () => {
+        pendingUnlockVault = null;
+        $("pinModal").classList.add("hidden");
+      });
+      $("confirmPinBtn").addEventListener("click", async () => {
+        if (!pendingUnlockVault) return;
+        const enteredHash = await sha256($("unlockPinInput").value.trim());
+        if (enteredHash === pendingUnlockVault.pinHash) {
+          unlockedVaultIds.add(pendingUnlockVault.id);
+          const v = pendingUnlockVault;
+          pendingUnlockVault = null;
+          $("pinModal").classList.add("hidden");
+          selectVault(v);
+        } else {
+          $("pinErrorMsg").classList.remove("hidden");
+        }
+      });
+
+      $("aboutBtn").addEventListener("click", () => {
+        closeSidebar();
+        $("aboutModal").classList.remove("hidden");
+      });
+      $("closeAboutBtn").addEventListener("click", () => $("aboutModal").classList.add("hidden"));
+
+      $("logoutBtn").addEventListener("click", () => {
+        if (!confirm("Deseja desconectar sua conta SSD Nexus deste aparelho?")) return;
+        localStorage.removeItem(STORAGE_KEYS.SESSION);
+        location.reload();
+      });
+
+      // Lightbox controls & touch gestures
+      $("lbClose").addEventListener("click", closeLightbox);
+      $("lbZoomIn").addEventListener("click", () => { lbScale = Math.min(5, lbScale + 0.5); applyLbTransform(); });
+      $("lbZoomOut").addEventListener("click", () => {
+        lbScale = Math.max(1, lbScale - 0.5);
+        if (lbScale === 1) { lbX = 0; lbY = 0; }
+        applyLbTransform();
+      });
+      $("lbZoomReset").addEventListener("click", resetLbTransform);
+      $("lbDownload").addEventListener("click", () => downloadFile(selectedFile));
+
+      const stage = $("lbStage");
+      stage.addEventListener("wheel", (e) => {
+        e.preventDefault();
+        lbScale = Math.max(1, Math.min(5, lbScale + (e.deltaY < 0 ? 0.25 : -0.25)));
+        if (lbScale === 1) { lbX = 0; lbY = 0; }
+        applyLbTransform();
+      }, { passive: false });
+
+      stage.addEventListener("mousedown", (e) => {
+        if (lbScale <= 1) return;
+        isDragging = true;
+        dragStartX = e.clientX - lbX;
+        dragStartY = e.clientY - lbY;
+      });
+      window.addEventListener("mousemove", (e) => {
+        if (!isDragging) return;
+        lbX = e.clientX - dragStartX;
+        lbY = e.clientY - dragStartY;
+        applyLbTransform();
+      });
+      window.addEventListener("mouseup", () => { isDragging = false; });
+
+      stage.addEventListener("touchstart", (e) => {
+        if (e.touches.length === 2) {
+          lastTouchDist = Math.hypot(
+            e.touches[0].clientX - e.touches[1].clientX,
+            e.touches[0].clientY - e.touches[1].clientY
+          );
+        } else if (e.touches.length === 1) {
+          const now = Date.now();
+          if (now - lastTapTime < 280) {
+            if (lbScale > 1) resetLbTransform();
+            else { lbScale = 2.5; applyLbTransform(); }
+          }
+          lastTapTime = now;
+          if (lbScale > 1) {
+            isDragging = true;
+            dragStartX = e.touches[0].clientX - lbX;
+            dragStartY = e.touches[0].clientY - lbY;
+          }
+        }
+      }, { passive: true });
+
+      stage.addEventListener("touchmove", (e) => {
+        if (e.touches.length === 2 && lastTouchDist > 0) {
+          const dist = Math.hypot(
+            e.touches[0].clientX - e.touches[1].clientX,
+            e.touches[0].clientY - e.touches[1].clientY
+          );
+          lbScale = Math.max(1, Math.min(5, lbScale * (dist / lastTouchDist)));
+          lastTouchDist = dist;
+          if (lbScale === 1) { lbX = 0; lbY = 0; }
+          applyLbTransform();
+        } else if (e.touches.length === 1 && isDragging && lbScale > 1) {
+          lbX = e.touches[0].clientX - dragStartX;
+          lbY = e.touches[0].clientY - dragStartY;
+          applyLbTransform();
+        }
+      }, { passive: true });
+
+      stage.addEventListener("touchend", () => { isDragging = false; lastTouchDist = 0; });
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") window.handleAndroidBack();
+      });
+
+      boot();
+    })();
+  </script>
+</body>
+</html>
