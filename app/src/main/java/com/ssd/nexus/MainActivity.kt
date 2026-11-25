@@ -12,11 +12,12 @@ import android.os.Environment
 import android.provider.MediaStore
 import android.util.Base64
 import android.view.ViewGroup
+import android.webkit.CookieManager
 import android.webkit.JavascriptInterface
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
-import android.webkit.WebResourceResponse
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -28,13 +29,17 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
-import androidx.webkit.WebViewAssetLoader
 import java.io.File
 import java.io.FileOutputStream
 import java.io.OutputStream
 import java.util.concurrent.ConcurrentHashMap
 
 class MainActivity : AppCompatActivity() {
+
+    companion object {
+        private const val SITE_URL = "https://clientessd001-glitch.github.io/nexusweb/"
+        private const val ALLOWED_HOST = "clientessd001-glitch.github.io"
+    }
 
     private lateinit var webView: WebView
     private var filePathCallback: ValueCallback<Array<Uri>>? = null
@@ -75,7 +80,6 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Dark system bars + safe edge-to-edge padding for Android 15 (SDK 35)
         window.statusBarColor = Color.parseColor("#090D16")
         window.navigationBarColor = Color.parseColor("#090D16")
         val insetsController = WindowCompat.getInsetsController(window, window.decorView)
@@ -92,6 +96,9 @@ class MainActivity : AppCompatActivity() {
 
         webView = WebView(this).apply {
             setBackgroundColor(Color.parseColor("#090D16"))
+            isVerticalScrollBarEnabled = true
+            isHorizontalScrollBarEnabled = false
+            overScrollMode = WebView.OVER_SCROLL_IF_CONTENT_SCROLLS
             layoutParams = FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
@@ -109,39 +116,36 @@ class MainActivity : AppCompatActivity() {
             WindowInsetsCompat.CONSUMED
         }
 
-        val assetLoader = WebViewAssetLoader.Builder()
-            .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(this))
-            .build()
+        val cookieManager = CookieManager.getInstance()
+        cookieManager.setAcceptCookie(true)
+        cookieManager.setAcceptThirdPartyCookies(webView, true)
 
         webView.settings.apply {
             javaScriptEnabled = true
             domStorageEnabled = true
             databaseEnabled = true
-            allowFileAccess = false
+            allowFileAccess = true
             allowContentAccess = true
+            useWideViewPort = true
+            loadWithOverviewMode = true
             mediaPlaybackRequiresUserGesture = false
             builtInZoomControls = false
             displayZoomControls = false
+            setSupportZoom(false)
             cacheMode = WebSettings.LOAD_DEFAULT
             mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
+            userAgentString = userAgentString.replace("; wv", "")
         }
 
         webView.addJavascriptInterface(AndroidBridge(), "AndroidBridge")
 
         webView.webViewClient = object : WebViewClient() {
-            override fun shouldInterceptRequest(
-                view: WebView,
-                request: WebResourceRequest
-            ): WebResourceResponse? {
-                return assetLoader.shouldInterceptRequest(request.url)
-            }
-
             override fun shouldOverrideUrlLoading(
                 view: WebView,
                 request: WebResourceRequest
             ): Boolean {
                 val url = request.url
-                if (url.host == "appassets.androidplatform.net") {
+                if (url.host == ALLOWED_HOST) {
                     return false
                 }
                 return try {
@@ -149,6 +153,45 @@ class MainActivity : AppCompatActivity() {
                     true
                 } catch (_: Exception) {
                     false
+                }
+            }
+
+            override fun onPageFinished(view: WebView, url: String?) {
+                super.onPageFinished(view, url)
+                injectAndroidDownloadHook(view)
+            }
+
+            override fun onReceivedError(
+                view: WebView,
+                request: WebResourceRequest,
+                error: WebResourceError
+            ) {
+                super.onReceivedError(view, request, error)
+                if (request.isForMainFrame) {
+                    val offlineHtml = """
+                        <!DOCTYPE html>
+                        <html lang="pt-BR">
+                        <head>
+                          <meta charset="UTF-8">
+                          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                          <style>
+                            body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center; background:#090D16; color:#F8FAFC; font-family:sans-serif; padding:24px; text-align:center; }
+                            .card { max-width:340px; background:#111827; border:1px solid rgba(148,163,184,0.2); border-radius:18px; padding:24px; }
+                            h2 { margin:0 0 8px; font-size:20px; }
+                            p { margin:0 0 20px; color:#94A3B8; font-size:14px; line-height:1.5; }
+                            button { width:100%; padding:13px; border:none; border-radius:12px; background:#38BDF8; color:#090D16; font-weight:700; font-size:15px; }
+                          </style>
+                        </head>
+                        <body>
+                          <div class="card">
+                            <h2>Sem conexão com a Nuvem SSD</h2>
+                            <p>Verifique sua internet e toque abaixo para reconectar ao SSD Nexus.</p>
+                            <button onclick="window.location.href='$SITE_URL'">Tentar novamente</button>
+                          </div>
+                        </body>
+                        </html>
+                    """.trimIndent()
+                    view.loadDataWithBaseURL(null, offlineHtml, "text/html", "UTF-8", null)
                 }
             }
         }
@@ -162,14 +205,24 @@ class MainActivity : AppCompatActivity() {
                 this@MainActivity.filePathCallback?.onReceiveValue(null)
                 this@MainActivity.filePathCallback = filePathCallback
 
+                val acceptTypes = fileChooserParams?.acceptTypes
+                    ?.filter { it.isNotBlank() }
+                    .orEmpty()
+
                 val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
                     addCategory(Intent.CATEGORY_OPENABLE)
-                    type = "*/*"
+                    type = if (acceptTypes.size == 1) acceptTypes.first() else "*/*"
+                    if (acceptTypes.size > 1) {
+                        putExtra(Intent.EXTRA_MIME_TYPES, acceptTypes.toTypedArray())
+                    }
                     putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 }
 
                 return try {
-                    fileChooserLauncher.launch(Intent.createChooser(intent, "Selecionar arquivos para o SSD Nexus"))
+                    fileChooserLauncher.launch(
+                        Intent.createChooser(intent, "Selecionar arquivos para o SSD Nexus")
+                    )
                     true
                 } catch (_: Exception) {
                     this@MainActivity.filePathCallback?.onReceiveValue(null)
@@ -182,9 +235,28 @@ class MainActivity : AppCompatActivity() {
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 webView.evaluateJavascript(
-                    "(function(){ return typeof window.handleAndroidBack === 'function' ? window.handleAndroidBack() : false; })()"
+                    """
+                    (function() {
+                      if (typeof window.handleAndroidBack === 'function' && window.handleAndroidBack()) return true;
+                      var modals = document.querySelectorAll('[id*="lightbox"], [id*="modal"], [class*="lightbox"], [class*="modal"]');
+                      var closed = false;
+                      for (var i = 0; i < modals.length; i++) {
+                        var st = window.getComputedStyle(modals[i]);
+                        if (st.display !== 'none' && st.visibility !== 'hidden' && st.opacity !== '0') {
+                          document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+                          closed = true;
+                          break;
+                        }
+                      }
+                      return closed;
+                    })();
+                    """.trimIndent()
                 ) { result ->
                     if (result == "true") {
+                        return@evaluateJavascript
+                    }
+                    if (webView.canGoBack()) {
+                        webView.goBack()
                         return@evaluateJavascript
                     }
                     val now = System.currentTimeMillis()
@@ -202,7 +274,54 @@ class MainActivity : AppCompatActivity() {
             }
         })
 
-        webView.loadUrl("https://appassets.androidplatform.net/assets/index.html")
+        webView.loadUrl(SITE_URL)
+    }
+
+    private fun injectAndroidDownloadHook(view: WebView) {
+        val jsHook = """
+            (function() {
+              if (window.__ssdNexusBridgeHooked) return;
+              window.__ssdNexusBridgeHooked = true;
+
+              var origClick = HTMLAnchorElement.prototype.click;
+              HTMLAnchorElement.prototype.click = function() {
+                if (this.href && this.href.indexOf('blob:') === 0 && window.AndroidBridge) {
+                  var blobUrl = this.href;
+                  var fileName = this.download || ('ssd_nexus_' + Date.now());
+                  fetch(blobUrl)
+                    .then(function(r) { return r.blob(); })
+                    .then(function(blob) {
+                      return blob.arrayBuffer().then(function(buf) {
+                        var mime = blob.type || 'application/octet-stream';
+                        var bytes = new Uint8Array(buf);
+                        var id = 'dl_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+                        if (!window.AndroidBridge.startFileSave(id, fileName, mime)) return;
+                        var CHUNK = 256 * 1024;
+                        for (var offset = 0; offset < bytes.length; offset += CHUNK) {
+                          var slice = bytes.subarray(offset, Math.min(offset + CHUNK, bytes.length));
+                          var bin = '';
+                          var step = 0x8000;
+                          for (var i = 0; i < slice.length; i += step) {
+                            bin += String.fromCharCode.apply(null, slice.subarray(i, i + step));
+                          }
+                          if (!window.AndroidBridge.appendFileChunk(id, btoa(bin))) {
+                            window.AndroidBridge.cancelFileSave(id);
+                            return;
+                          }
+                        }
+                        window.AndroidBridge.finishFileSave(id);
+                      });
+                    })
+                    .catch(function(err) {
+                      window.AndroidBridge.showToast('Erro no download: ' + err);
+                    });
+                  return;
+                }
+                return origClick.apply(this, arguments);
+              };
+            })();
+        """.trimIndent()
+        view.evaluateJavascript(jsHook, null)
     }
 
     override fun onDestroy() {
