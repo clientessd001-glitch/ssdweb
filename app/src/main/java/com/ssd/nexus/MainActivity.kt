@@ -309,7 +309,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         private fun sanitizeFileName(name: String): String {
-            val cleaned = name.replace(Regex("[\\/:*?"<>|]"), "_").trim()
+            val cleaned = name.replace(Regex("""[\\/:*?"<>|]"""), "_").trim()
             return cleaned.ifBlank { "arquivo_ssd_nexus_${System.currentTimeMillis()}" }
         }
     }
