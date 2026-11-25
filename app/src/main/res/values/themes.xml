@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.SSDNexus" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowBackground">@color/nexus_bg</item>
+        <item name="android:statusBarColor">@color/nexus_bg</item>
+        <item name="android:navigationBarColor">@color/nexus_bg</item>
+        <item name="android:forceDarkAllowed">false</item>
+    </style>
+</resources>
