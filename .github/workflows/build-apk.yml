@@ -1,0 +1,81 @@
+name: Build SSD Nexus APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Baixar motor gramjs.js do nexusweb (com fallback automatico)
+        run: |
+          mkdir -p app/src/main/assets
+          if [ -f "app/src/main/assets/gramjs.js" ] && [ $(wc -c < "app/src/main/assets/gramjs.js") -gt 50000 ]; then
+            echo "Usando gramjs.js ja presente no repositorio."
+          else
+            echo "Baixando gramjs.js de https://clientessd001-glitch.github.io/nexusweb/gramjs.js ..."
+            curl -fSL "https://clientessd001-glitch.github.io/nexusweb/gramjs.js" -o app/src/main/assets/gramjs.js || true
+          fi
+
+          if [ ! -f "app/src/main/assets/gramjs.js" ] || [ $(wc -c < "app/src/main/assets/gramjs.js") -lt 50000 ] || head -n 1 app/src/main/assets/gramjs.js | grep -qi "<!DOCTYPE"; then
+            echo "Download indisponivel. Compilando gramjs.js automaticamente via esbuild..."
+            mkdir -p /tmp/gramjs-build && cd /tmp/gramjs-build
+            npm init -y
+            npm install telegram buffer process events util stream-browserify crypto-browserify path-browserify os-browserify esbuild
+            printf '%s\n' \
+              "import { Buffer } from 'buffer';" \
+              "import process from 'process';" \
+              "globalThis.Buffer = Buffer;" \
+              "globalThis.process = process;" \
+              "import * as telegram from 'telegram';" \
+              "import { Api } from 'telegram/tl';" \
+              "import { StringSession } from 'telegram/sessions';" \
+              "window.Buffer = Buffer;" \
+              "window.telegram = { ...telegram, Api, sessions: { StringSession }, Buffer };" \
+              > entry.js
+            npx esbuild entry.js \
+              --bundle \
+              --platform=browser \
+              --format=iife \
+              --minify \
+              --define:global=globalThis \
+              --alias:crypto=crypto-browserify \
+              --alias:stream=stream-browserify \
+              --alias:path=path-browserify \
+              --alias:os=os-browserify \
+              --outfile="$GITHUB_WORKSPACE/app/src/main/assets/gramjs.js"
+          fi
+          ls -lh "$GITHUB_WORKSPACE/app/src/main/assets/gramjs.js"
+
+      - name: Setup Gradle 8.7
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Build Debug APK (pronto para instalar)
+        run: gradle assembleDebug --no-daemon
+
+      - name: Preparar arquivo SSD-Nexus-Mobile.apk
+        run: |
+          mkdir -p release-output
+          cp app/build/outputs/apk/debug/app-debug.apk release-output/SSD-Nexus-Mobile.apk
+          ls -lh release-output/SSD-Nexus-Mobile.apk
+
+      - name: Upload SSD-Nexus-Mobile.apk
+        uses: actions/upload-artifact@v4
+        with:
+          name: SSD-Nexus-Mobile-APK
+          path: release-output/SSD-Nexus-Mobile.apk
+          retention-days: 30
