@@ -1,13 +1,11 @@
 package com.ssd.nexus
 
-import android.graphics.Color
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ActivityInfo
+import android.graphics.Color
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -24,11 +22,14 @@ import android.webkit.WebResourceResponse
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.FrameLayout
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -107,17 +108,32 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        webView = WebView(this)
-        setContentView(webView)
         val bgDark = Color.parseColor("#060913")
-     window.decorView.setBackgroundColor(bgDark)
-     webView.setBackgroundColor(bgDark)
+        window.decorView.setBackgroundColor(bgDark)
 
-     ViewCompat.setOnApplyWindowInsetsListener(webView) { view, insets ->
-         val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-         view.setPadding(bars.left, bars.top, bars.right, bars.bottom)
-         insets
-     }
+        val container = FrameLayout(this).apply {
+            setBackgroundColor(bgDark)
+        }
+
+        webView = WebView(this).apply {
+            setBackgroundColor(bgDark)
+        }
+
+        container.addView(
+            webView,
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            )
+        )
+        setContentView(container)
+
+        ViewCompat.setOnApplyWindowInsetsListener(container) { view, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            view.setPadding(bars.left, bars.top, bars.right, bars.bottom)
+            insets
+        }
+        ViewCompat.requestApplyInsets(container)
 
         webView.settings.apply {
             javaScriptEnabled = true
