@@ -387,10 +387,10 @@ class MainActivity : AppCompatActivity() {
     private fun injectAndroidEnhancements(view: WebView) {
         val jsHook = """
             (function() {
-              if (window.__ssdNexusEnhancedV4) return;
-              window.__ssdNexusEnhancedV4 = true;
+              if (window.__ssdNexusEnhancedV5) return;
+              window.__ssdNexusEnhancedV5 = true;
 
-              /* ---------- 1. CSS: NUVEM + COLUNAS (2/3/4) + TELA CHEIA REAL ---------- */
+              /* ---------- 1. CSS: BOTÃO UPLOAD + TELA CHEIA REAL ---------- */
               var style = document.createElement('style');
               style.textContent = [
                 '#ssdCloudFab {',
@@ -405,76 +405,6 @@ class MainActivity : AppCompatActivity() {
                 '}',
                 '#ssdCloudFab:active { transform: scale(0.93); }',
                 '#ssdCloudFab svg { width: 22px; height: 22px; flex-shrink: 0; }',
-                '#ssdColBar {',
-                '  position: fixed; left: 16px; bottom: 20px; z-index: 9400;',
-                '  display: none; align-items: center; gap: 4px;',
-                '  height: 52px; padding: 5px; border-radius: 999px;',
-                '  background: rgba(15, 23, 42, 0.92);',
-                '  border: 1px solid rgba(56, 189, 248, 0.35);',
-                '  backdrop-filter: blur(10px);',
-                '  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.48);',
-                '}',
-                '.ssdColLabel {',
-                '  font-size: 11px; font-weight: 800; color: #94A3B8;',
-                '  padding: 0 6px 0 8px; letter-spacing: 0.04em; text-transform: uppercase;',
-                '}',
-                '.ssdColBtn {',
-                '  width: 36px; height: 38px; border-radius: 999px; border: none;',
-                '  background: transparent; color: #CBD5E1;',
-                '  font-family: inherit; font-size: 13px; font-weight: 800;',
-                '  cursor: pointer; transition: background 0.15s, color 0.15s;',
-                '}',
-                '.ssdColBtn.active {',
-                '  background: linear-gradient(135deg, #38BDF8, #2563EB);',
-                '  color: #FFFFFF; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.45);',
-                '}',
-                'html.ssd-cols-2 [data-ssd-grid="1"] {',
-                '  display: grid !important;',
-                '  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;',
-                '  gap: 10px !important;',
-                '}',
-                'html.ssd-cols-3 [data-ssd-grid="1"] {',
-                '  display: grid !important;',
-                '  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;',
-                '  gap: 7px !important;',
-                '}',
-                'html.ssd-cols-4 [data-ssd-grid="1"] {',
-                '  display: grid !important;',
-                '  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;',
-                '  gap: 5px !important;',
-                '}',
-                'html.ssd-cols-3 [data-ssd-grid="1"] > *,',
-                'html.ssd-cols-4 [data-ssd-grid="1"] > * {',
-                '  min-width: 0 !important; border-radius: 11px !important;',
-                '}',
-                'html.ssd-cols-3 [data-ssd-grid="1"] [class*="thumb"] {',
-                '  aspect-ratio: 1 / 1 !important; height: auto !important;',
-                '}',
-                'html.ssd-cols-3 [data-ssd-grid="1"] [class*="info"] {',
-                '  padding: 6px 7px !important;',
-                '}',
-                'html.ssd-cols-3 [data-ssd-grid="1"] [class*="name"] {',
-                '  font-size: 11px !important;',
-                '}',
-                'html.ssd-cols-3 [data-ssd-grid="1"] [class*="meta"] {',
-                '  font-size: 9.5px !important;',
-                '}',
-                'html.ssd-cols-3 [data-ssd-grid="1"] [class*="badge"] {',
-                '  font-size: 8.5px !important; padding: 2px 5px !important; top: 5px !important; right: 5px !important;',
-                '}',
-                'html.ssd-cols-4 [data-ssd-grid="1"] [class*="thumb"] {',
-                '  aspect-ratio: 1 / 1 !important; height: auto !important;',
-                '}',
-                'html.ssd-cols-4 [data-ssd-grid="1"] [class*="info"] {',
-                '  padding: 4px 5px !important;',
-                '}',
-                'html.ssd-cols-4 [data-ssd-grid="1"] [class*="name"] {',
-                '  font-size: 9.5px !important;',
-                '}',
-                'html.ssd-cols-4 [data-ssd-grid="1"] [class*="meta"],',
-                'html.ssd-cols-4 [data-ssd-grid="1"] [class*="badge"] {',
-                '  display: none !important;',
-                '}',
                 '#ssdFullViewer {',
                 '  position: fixed; inset: 0; width: 100vw; height: 100vh;',
                 '  background: #000000; z-index: 999999;',
@@ -542,69 +472,6 @@ class MainActivity : AppCompatActivity() {
                 '</svg><span>Upload</span>';
               document.body.appendChild(fab);
 
-              /* ---------- 3. SELETOR DE COLUNAS (2 | 3 | 4) ---------- */
-              var COL_KEY = 'ssd_nexus_grid_cols';
-              var colBar = document.createElement('div');
-              colBar.id = 'ssdColBar';
-              colBar.innerHTML =
-                '<span class="ssdColLabel">Col</span>' +
-                '<button type="button" class="ssdColBtn" data-cols="2">2</button>' +
-                '<button type="button" class="ssdColBtn" data-cols="3">3</button>' +
-                '<button type="button" class="ssdColBtn" data-cols="4">4</button>';
-              document.body.appendChild(colBar);
-
-              function applyGridCols(cols, announce) {
-                var num = String(cols);
-                if (num !== '2' && num !== '3' && num !== '4') num = '3';
-                document.documentElement.classList.remove('ssd-cols-2', 'ssd-cols-3', 'ssd-cols-4');
-                document.documentElement.classList.add('ssd-cols-' + num);
-                try { localStorage.setItem(COL_KEY, num); } catch (_) {}
-                var btns = colBar.querySelectorAll('.ssdColBtn');
-                for (var i = 0; i < btns.length; i++) {
-                  btns[i].classList.toggle('active', btns[i].getAttribute('data-cols') === num);
-                }
-                if (announce && window.AndroidBridge) {
-                  window.AndroidBridge.showToast('Grade em ' + num + ' colunas');
-                }
-              }
-
-              colBar.addEventListener('click', function(ev) {
-                var btn = ev.target.closest ? ev.target.closest('.ssdColBtn') : null;
-                if (!btn) return;
-                ev.preventDefault();
-                ev.stopPropagation();
-                applyGridCols(btn.getAttribute('data-cols'), true);
-              });
-
-              var savedCols = '3';
-              try {
-                var stored = localStorage.getItem(COL_KEY);
-                if (stored === '2' || stored === '3' || stored === '4') savedCols = stored;
-              } catch (_) {}
-              applyGridCols(savedCols, false);
-
-              function markFileGrids() {
-                var known = document.querySelectorAll('#filesGrid, .files-grid, #fileGrid, .file-grid, #mediaGrid, .media-grid, .gallery-grid');
-                for (var i = 0; i < known.length; i++) {
-                  known[i].setAttribute('data-ssd-grid', '1');
-                }
-                if (known.length > 0) return;
-
-                var divs = document.querySelectorAll('main div, #appScreen div, section div');
-                for (var j = 0; j < divs.length; j++) {
-                  var el = divs[j];
-                  if (el.getAttribute('data-ssd-grid') === '1') continue;
-                  if (el.closest && (el.closest('.modal-card') || el.closest('.sidebar-foot') || el.closest('.tab-switch') || el.closest('#ssdFullViewer'))) continue;
-                  var st = window.getComputedStyle(el);
-                  if (st.display === 'grid' && el.children.length >= 2) {
-                    var hasMediaOrCard = el.querySelector('img, video, [class*="card"], [class*="file"], [class*="item"]');
-                    if (hasMediaOrCard) {
-                      el.setAttribute('data-ssd-grid', '1');
-                    }
-                  }
-                }
-              }
-
               function getUploadInput() {
                 var inputs = document.querySelectorAll('input[type="file"]');
                 for (var i = 0; i < inputs.length; i++) {
@@ -613,24 +480,28 @@ class MainActivity : AppCompatActivity() {
                 return null;
               }
 
-              function isLoginVisible() {
+              function isLoginOrLockVisible() {
+                var authView = document.getElementById('view-auth');
+                if (authView && !authView.classList.contains('hidden')) return true;
+
+                var setupView = document.getElementById('view-setup');
+                if (setupView && !setupView.classList.contains('hidden')) return true;
+
+                var lockView = document.getElementById('view-pin-lock');
+                if (lockView && !lockView.classList.contains('hidden')) return true;
+
                 var tel = document.querySelector('input[type="tel"]');
                 if (tel && tel.offsetParent !== null) return true;
-                var auth = document.getElementById('authScreen') || document.getElementById('loginScreen');
-                if (auth) {
-                  var st = window.getComputedStyle(auth);
-                  if (st.display !== 'none' && st.visibility !== 'hidden') return true;
-                }
+
                 return false;
               }
 
               function updateFloatingControlsVisibility() {
                 var fv = document.getElementById('ssdFullViewer');
                 var viewerOpen = fv && fv.classList.contains('open');
-                var loggedIn = Boolean(getUploadInput()) && !isLoginVisible();
+                var loggedIn = Boolean(getUploadInput()) && !isLoginOrLockVisible();
                 var show = loggedIn && !viewerOpen;
                 fab.style.display = show ? 'inline-flex' : 'none';
-                colBar.style.display = show ? 'inline-flex' : 'none';
               }
 
               fab.addEventListener('click', function(ev) {
@@ -677,7 +548,7 @@ class MainActivity : AppCompatActivity() {
                 }
               }, true);
 
-              /* ---------- 4. VISUALIZADOR TELA CHEIA REAL (FOTOS + VÍDEOS) ---------- */
+              /* ---------- 3. VISUALIZADOR TELA CHEIA REAL (FOTOS + VÍDEOS) ---------- */
               var viewer = document.createElement('div');
               viewer.id = 'ssdFullViewer';
               viewer.innerHTML =
@@ -843,11 +714,10 @@ class MainActivity : AppCompatActivity() {
                 fvTouchDist = 0;
               });
 
-              /* ---------- 5. MELHORAR GRADE, FOTOS, VÍDEOS E LIGHTBOX ---------- */
+              /* ---------- 4. MELHORAR FOTOS, VÍDEOS E LIGHTBOX ---------- */
               var siteLightboxWasOpen = false;
 
               function enhanceMediaElements() {
-                markFileGrids();
                 updateFloatingControlsVisibility();
 
                 var videos = document.querySelectorAll('video');
@@ -924,7 +794,7 @@ class MainActivity : AppCompatActivity() {
               setInterval(enhanceMediaElements, 900);
               enhanceMediaElements();
 
-              /* ---------- 6. PONTE DE DOWNLOAD BLOB -> DOWNLOADS/SSD NEXUS ---------- */
+              /* ---------- 5. PONTE DE DOWNLOAD BLOB -> DOWNLOADS/SSD NEXUS ---------- */
               var origClick = HTMLAnchorElement.prototype.click;
               HTMLAnchorElement.prototype.click = function() {
                 if (this.href && this.href.indexOf('blob:') === 0 && window.AndroidBridge) {
@@ -981,7 +851,7 @@ class MainActivity : AppCompatActivity() {
     inner class AndroidBridge {
 
         @JavascriptInterface
-        fun getAppVersion(): String = "2.4.0-android"
+        fun getAppVersion(): String = "2.5.0-android"
 
         @JavascriptInterface
         fun showToast(message: String) {
