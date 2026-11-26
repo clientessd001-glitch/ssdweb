@@ -1,4 +1,4 @@
-package com.seu.nexuscloud
+package com.seu.nexus
 
 import android.annotation.SuppressLint
 import android.app.Activity
