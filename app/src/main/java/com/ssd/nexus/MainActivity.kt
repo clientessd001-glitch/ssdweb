@@ -1,12 +1,17 @@
 package com.ssd.nexus
 
+import android.graphics.Color
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.DocumentsContract
 import android.util.Base64
 import android.view.View
 import android.view.WindowInsets
@@ -15,6 +20,7 @@ import android.webkit.JavascriptInterface
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -23,14 +29,19 @@ import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
+import org.json.JSONArray
+import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
+import java.net.URLEncoder
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var webView: WebView
     private var filePathCallback: ValueCallback<Array<Uri>>? = null
     private val appUrl = "https://clientessd001-glitch.github.io/nexusweb/"
+    private val prefsName = "ssd_nexus_sync_prefs"
+    private val keySyncTreeUri = "sync_folder_tree_uri"
 
     private val fileChooserLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -64,12 +75,49 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private val syncFolderLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val treeUri = result.data?.data
+            if (treeUri != null) {
+                try {
+                    val takeFlags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    contentResolver.takePersistableUriPermission(treeUri, takeFlags)
+                } catch (_: Exception) {}
+
+                getSharedPreferences(prefsName, Context.MODE_PRIVATE)
+                    .edit()
+                    .putString(keySyncTreeUri, treeUri.toString())
+                    .apply()
+
+                val label = extractFolderLabel(treeUri)
+                val safeLabel = JSONObject.quote(label)
+                runOnUiThread {
+                    webView.evaluateJavascript(
+                        "if(typeof window.onSyncFolderSelected === 'function'){ window.onSyncFolderSelected($safeLabel); }",
+                        null
+                    )
+                }
+            }
+        }
+    }
+
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         webView = WebView(this)
         setContentView(webView)
+        val bgDark = Color.parseColor("#060913")
+     window.decorView.setBackgroundColor(bgDark)
+     webView.setBackgroundColor(bgDark)
+
+     ViewCompat.setOnApplyWindowInsetsListener(webView) { view, insets ->
+         val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+         view.setPadding(bars.left, bars.top, bars.right, bars.bottom)
+         insets
+     }
 
         webView.settings.apply {
             javaScriptEnabled = true
@@ -85,6 +133,28 @@ class MainActivity : AppCompatActivity() {
         webView.addJavascriptInterface(AndroidBridge(), "AndroidBridge")
 
         webView.webViewClient = object : WebViewClient() {
+            override fun shouldInterceptRequest(
+                view: WebView?,
+                request: WebResourceRequest?
+            ): WebResourceResponse? {
+                val reqUrl = request?.url ?: return super.shouldInterceptRequest(view, request)
+                if (reqUrl.host == "ssd-sync.local" && reqUrl.path == "/file") {
+                    val uriParam = reqUrl.getQueryParameter("uri") ?: return null
+                    val mimeParam = reqUrl.getQueryParameter("mime") ?: "application/octet-stream"
+                    return try {
+                        val stream = contentResolver.openInputStream(Uri.parse(uriParam)) ?: return null
+                        val headers = mapOf(
+                            "Access-Control-Allow-Origin" to "*",
+                            "Cache-Control" to "no-store"
+                        )
+                        WebResourceResponse(mimeParam, null, 200, "OK", headers, stream)
+                    } catch (_: Exception) {
+                        null
+                    }
+                }
+                return super.shouldInterceptRequest(view, request)
+            }
+
             override fun shouldOverrideUrlLoading(
                 view: WebView?,
                 request: WebResourceRequest?
@@ -110,7 +180,6 @@ class MainActivity : AppCompatActivity() {
                 this@MainActivity.filePathCallback?.onReceiveValue(null)
                 this@MainActivity.filePathCallback = filePathCallback
 
-                // Blinda o processo em primeiro plano antes de abrir a galeria/arquivos
                 startUploadServiceSafely()
 
                 return try {
@@ -154,9 +223,29 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        webView.onResume()
+        webView.resumeTimers()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        webView.resumeTimers()
+    }
+
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         webView.saveState(outState)
+    }
+
+    private fun extractFolderLabel(treeUri: Uri): String {
+        return try {
+            val docId = DocumentsContract.getTreeDocumentId(treeUri)
+            docId.substringAfterLast(':').ifBlank { docId }
+        } catch (_: Exception) {
+            "Pasta Selecionada"
+        }
     }
 
     private fun startUploadServiceSafely() {
@@ -177,6 +266,101 @@ class MainActivity : AppCompatActivity() {
     }
 
     inner class AndroidBridge {
+
+        @JavascriptInterface
+        fun pickSyncFolder() {
+            runOnUiThread {
+                try {
+                    val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
+                        addFlags(
+                            Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                                Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
+                        )
+                    }
+                    syncFolderLauncher.launch(intent)
+                } catch (_: Exception) {
+                    Toast.makeText(this@MainActivity, "Não foi possível abrir o seletor de pastas.", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+
+        @JavascriptInterface
+        fun getSyncFolderInfo(): String {
+            val uriStr = getSharedPreferences(prefsName, Context.MODE_PRIVATE)
+                .getString(keySyncTreeUri, null)
+            val obj = JSONObject()
+            if (uriStr.isNullOrBlank()) {
+                obj.put("configured", false)
+                obj.put("label", "")
+            } else {
+                obj.put("configured", true)
+                obj.put("label", extractFolderLabel(Uri.parse(uriStr)))
+            }
+            return obj.toString()
+        }
+
+        @JavascriptInterface
+        fun clearSyncFolder() {
+            getSharedPreferences(prefsName, Context.MODE_PRIVATE)
+                .edit()
+                .remove(keySyncTreeUri)
+                .apply()
+        }
+
+        @JavascriptInterface
+        fun scanSyncFolder(): String {
+            val arr = JSONArray()
+            val uriStr = getSharedPreferences(prefsName, Context.MODE_PRIVATE)
+                .getString(keySyncTreeUri, null) ?: return arr.toString()
+
+            return try {
+                val treeUri = Uri.parse(uriStr)
+                val docId = DocumentsContract.getTreeDocumentId(treeUri)
+                val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(treeUri, docId)
+                val projection = arrayOf(
+                    DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+                    DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+                    DocumentsContract.Document.COLUMN_MIME_TYPE,
+                    DocumentsContract.Document.COLUMN_SIZE,
+                    DocumentsContract.Document.COLUMN_LAST_MODIFIED
+                )
+
+                contentResolver.query(childrenUri, projection, null, null, null)?.use { cursor ->
+                    val idxId = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_DOCUMENT_ID)
+                    val idxName = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_DISPLAY_NAME)
+                    val idxMime = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_MIME_TYPE)
+                    val idxSize = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_SIZE)
+                    val idxMod = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_LAST_MODIFIED)
+
+                    while (cursor.moveToNext()) {
+                        val childId = if (idxId >= 0) cursor.getString(idxId) else continue
+                        val name = if (idxName >= 0) cursor.getString(idxName) ?: "arquivo" else "arquivo"
+                        val mime = if (idxMime >= 0) cursor.getString(idxMime) ?: "application/octet-stream" else "application/octet-stream"
+                        val size = if (idxSize >= 0) cursor.getLong(idxSize) else 0L
+                        val mod = if (idxMod >= 0) cursor.getLong(idxMod) else 0L
+
+                        if (mime == DocumentsContract.Document.MIME_TYPE_DIR || size <= 0L) continue
+
+                        val fileUri = DocumentsContract.buildDocumentUriUsingTree(treeUri, childId)
+                        val encUri = URLEncoder.encode(fileUri.toString(), "UTF-8")
+                        val encMime = URLEncoder.encode(mime, "UTF-8")
+
+                        val item = JSONObject().apply {
+                            put("sig", "${name}_${size}_${mod}")
+                            put("name", name)
+                            put("mime", mime)
+                            put("size", size)
+                            put("modified", mod)
+                            put("url", "https://ssd-sync.local/file?uri=$encUri&mime=$encMime")
+                        }
+                        arr.put(item)
+                    }
+                }
+                arr.toString()
+            } catch (_: Exception) {
+                arr.toString()
+            }
+        }
 
         @JavascriptInterface
         fun setUploadActive(active: Boolean) {
