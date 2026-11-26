@@ -1,5 +1,6 @@
 package com.ssd.nexus
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.ContentValues
@@ -29,6 +30,7 @@ import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.FileProvider
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -98,6 +100,11 @@ class MainActivity : AppCompatActivity() {
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Permissão de notificação no Android 13+ para manter o upload em segundo plano
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 101)
+        }
 
         window.statusBarColor = Color.parseColor("#090D16")
         window.navigationBarColor = Color.parseColor("#090D16")
@@ -960,6 +967,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        try {
+            stopService(Intent(this, UploadKeepAliveService::class.java))
+        } catch (_: Exception) {}
         pendingDownloads.values.forEach { session ->
             try { session.outputStream.close() } catch (_: Exception) {}
         }
@@ -971,7 +981,7 @@ class MainActivity : AppCompatActivity() {
     inner class AndroidBridge {
 
         @JavascriptInterface
-        fun getAppVersion(): String = "2.3.0-android"
+        fun getAppVersion(): String = "2.4.0-android"
 
         @JavascriptInterface
         fun showToast(message: String) {
@@ -995,6 +1005,61 @@ class MainActivity : AppCompatActivity() {
                     ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
                 } else {
                     ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                }
+            }
+        }
+
+        @JavascriptInterface
+        fun setUploadActive(active: Boolean) {
+            runOnUiThread {
+                val serviceIntent = Intent(this@MainActivity, UploadKeepAliveService::class.java)
+                if (active) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        startForegroundService(serviceIntent)
+                    } else {
+                        startService(serviceIntent)
+                    }
+                } else {
+                    stopService(serviceIntent)
+                }
+            }
+        }
+
+        @JavascriptInterface
+        fun shareFile(base64Data: String, fileName: String, mimeType: String) {
+            try {
+                val bytes = Base64.decode(base64Data, Base64.DEFAULT)
+                val shareDir = File(cacheDir, "shared")
+                if (!shareDir.exists()) shareDir.mkdirs()
+
+                shareDir.listFiles()?.forEach { it.delete() }
+
+                val safeName = sanitizeFileName(fileName)
+                val tempFile = File(shareDir, safeName)
+                tempFile.writeBytes(bytes)
+
+                val uri = FileProvider.getUriForFile(
+                    this@MainActivity,
+                    "${packageName}.fileprovider",
+                    tempFile
+                )
+
+                val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                    type = mimeType.ifBlank { "*/*" }
+                    putExtra(Intent.EXTRA_STREAM, uri)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+
+                runOnUiThread {
+                    startActivity(Intent.createChooser(shareIntent, "Compartilhar via"))
+                }
+            } catch (e: Exception) {
+                runOnUiThread {
+                    Toast.makeText(
+                        this@MainActivity,
+                        "Erro ao compartilhar: ${e.message}",
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
             }
         }
