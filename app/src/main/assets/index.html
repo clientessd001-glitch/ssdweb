@@ -35,6 +35,12 @@
     };
   </script>
   <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    if (window.pdfjsLib) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+  </script>
 
   <style>
     * { box-sizing: border-box; }
@@ -812,21 +818,29 @@
     </div>
   </div>
 
-  <!-- MODAL: VISUALIZADOR TELA CHEIA -->
+  <!-- MODAL: VISUALIZADOR TELA CHEIA (FOTOS, VÍDEOS & PDF) -->
   <div id="modal-fullscreen-media" class="fixed inset-0 z-[100] hidden flex-col bg-black select-none">
-    <div class="flex items-center justify-between gap-2 bg-gradient-to-b from-black/90 to-transparent px-4 py-3 z-10">
+    <div class="flex items-center justify-between gap-2 bg-gradient-to-b from-black/95 to-black/70 px-3 sm:px-4 py-3 z-10 border-b border-white/10">
       <span id="fs-media-title" class="truncate text-xs sm:text-sm font-bold text-white flex-1">Visualização</span>
-      <div class="flex items-center gap-1.5">
-        <button id="fs-zoom-out" type="button" onclick="adjustFullscreenZoom(-0.4)" class="flex h-9 w-9 items-center justify-center rounded-xl border border-white/20 bg-slate-900/80 text-white font-bold">−</button>
+      <div class="flex items-center gap-1.5 flex-wrap justify-end">
+        <div id="fs-pdf-nav" class="hidden items-center gap-1 mr-1">
+          <button type="button" onclick="changePdfPage(state.fsFileKey, -1, true)" class="flex h-9 w-9 items-center justify-center rounded-xl border border-white/20 bg-slate-900/90 text-white font-bold">◀</button>
+          <span id="fs-pdf-canvas-page-label" class="flex h-9 px-2.5 items-center justify-center rounded-xl border border-white/20 bg-slate-900/90 font-mono text-xs text-[#06b6d4]">1 / ?</span>
+          <button type="button" onclick="changePdfPage(state.fsFileKey, 1, true)" class="flex h-9 w-9 items-center justify-center rounded-xl border border-white/20 bg-slate-900/90 text-white font-bold">▶</button>
+        </div>
+        <button id="fs-zoom-out" type="button" onclick="adjustFullscreenZoom(-0.35)" class="flex h-9 w-9 items-center justify-center rounded-xl border border-white/20 bg-slate-900/80 text-white font-bold">−</button>
         <button id="fs-zoom-reset" type="button" onclick="adjustFullscreenZoom(0)" class="flex h-9 px-2.5 items-center justify-center rounded-xl border border-white/20 bg-slate-900/80 font-mono text-xs text-[#06b6d4]">100%</button>
-        <button id="fs-zoom-in" type="button" onclick="adjustFullscreenZoom(0.4)" class="flex h-9 w-9 items-center justify-center rounded-xl border border-white/20 bg-slate-900/80 text-white font-bold">＋</button>
-        <button type="button" onclick="rotateFullscreenMedia()" title="Girar" class="flex h-9 w-9 items-center justify-center rounded-xl border border-white/20 bg-slate-900/80 text-white">↻</button>
+        <button id="fs-zoom-in" type="button" onclick="adjustFullscreenZoom(0.35)" class="flex h-9 w-9 items-center justify-center rounded-xl border border-white/20 bg-slate-900/80 text-white font-bold">＋</button>
+        <button id="fs-rotate-btn" type="button" onclick="rotateFullscreenMedia()" title="Girar" class="flex h-9 w-9 items-center justify-center rounded-xl border border-white/20 bg-slate-900/80 text-white">↻</button>
         <button type="button" onclick="closeFullscreenMedia()" title="Fechar" class="flex h-9 w-9 items-center justify-center rounded-xl border border-rose-500/40 bg-rose-600/80 text-white font-bold">✕</button>
       </div>
     </div>
-    <div id="fs-media-stage" class="flex-1 w-full h-full flex items-center justify-center overflow-hidden touch-none">
+    <div id="fs-media-stage" class="flex-1 w-full h-full flex items-center justify-center overflow-hidden">
       <img id="fs-media-img" class="hidden max-w-full max-h-full object-contain transition-transform duration-100" alt="Tela cheia" />
       <video id="fs-media-video" class="hidden w-full h-full object-contain bg-black" controls playsinline autoplay></video>
+      <div id="fs-pdf-wrap" class="hidden w-full h-full overflow-auto p-3 sm:p-6 bg-[#0b1020] text-center">
+        <canvas id="fs-pdf-canvas" class="mx-auto rounded-lg shadow-2xl bg-white"></canvas>
+      </div>
     </div>
   </div>
 
@@ -855,7 +869,7 @@
         </div>
         <div class="flex justify-between border-b border-[#1e293b] pb-2">
           <span class="text-slate-400">Sincronização</span>
-          <span class="font-mono text-emerald-400">Pastas + Fila 2º Plano</span>
+          <span class="font-mono text-emerald-400">Pastas + PDF + Fila 2º Plano</span>
         </div>
         <div class="flex justify-between">
           <span class="text-slate-400">Segurança</span>
@@ -873,13 +887,13 @@
 
   <script>window.__SSD_GRAMJS_SCRIPT_FAILED = false;</script>
   <script src="./gramjs.js" onerror="window.__SSD_GRAMJS_SCRIPT_FAILED = true;"></script>
-<!-- FINAL PARTE 1 -->
-  <script>
+<script>
     const SSD_API_CONFIG = { api_id: 32171989, api_hash: 'e5024e850807919814641dfcb5d26639' };
     const ADMIN_REGISTRY_TAG = '#SSD_NEXUS_ADMIN_V1';
     const FOLDERS_SYNC_TAG = '#SSD_NEXUS_FOLDERS_V1';
     const SESSION_STORAGE_KEY = 'ssd_nexus_gramjs_session';
     const PENDING_AUTH_KEY = 'ssd_nexus_pending_auth';
+    const PICKER_UNLOCK_KEY = 'ssd_nexus_picker_unlock_ts';
     const STORAGE_KEYS = {
       DEVICE_PROFILE: 'ssd_nexus_device_profile_v3',
       FAVORITES_PREFIX: 'ssd_nexus_favorites_',
@@ -921,7 +935,9 @@
       folders: [], fileFolderMap: {}, foldersMsgId: null, activeFolderId: null, newFolderColor: 'cyan', forwardTargetKey: null,
       uploadQueue: [], uploadQueueExpanded: true, uploadWorkerRunning: false,
       cloudFiles: [], rawMessagesByKey: new Map(), favoriteKeys: new Set(), thumbnailUrls: {}, previewCache: {},
-      previewZoom: 1, fsZoom: 1, fsRot: 0, thumbQueue: [], activeThumbWorkers: 0,
+      previewZoom: 1, fsZoom: 1, fsRot: 0, fsFileKey: null, fsIsPdf: false,
+      pdfDoc: null, pdfPage: 1, pdfTotalPages: 0,
+      thumbQueue: [], activeThumbWorkers: 0,
       category: 'all', viewMode: 'grid', gridCols: Number(localStorage.getItem('ssd_nexus_grid_cols')) || 3,
       sortBy: 'date-desc', searchQuery: '', previewItemKey: null, confirmDeleteKey: null,
       sidebarCollapsed: false, autoLockMinutes: 5, autoLockTimer: null
@@ -1800,13 +1816,30 @@
 
         if (boundProfile) {
           const remoteProf = state.adminData.profiles.find(p => p.id === boundProfile.id);
+          if (remoteProf && remoteProf.blocked) {
+            openDevicePinLockScreen();
+            return;
+          }
           if (remoteProf && remoteProf.pinHash) {
             boundProfile.pinHash = remoteProf.pinHash;
             boundProfile.pinLength = remoteProf.pinLength || boundProfile.pinLength;
             saveDeviceProfile(boundProfile);
           }
           loadFavoritesAndFolders();
-          openDevicePinLockScreen();
+
+          let skipPinAfterPicker = false;
+          try {
+            const ts = Number(localStorage.getItem(PICKER_UNLOCK_KEY) || '0');
+            localStorage.removeItem(PICKER_UNLOCK_KEY);
+            if (ts && (Date.now() - ts) < 3 * 60 * 1000) skipPinAfterPicker = true;
+          } catch (e) {}
+
+          if (skipPinAfterPicker) {
+            state.isUnlocked = true;
+            await enterWorkspace();
+          } else {
+            openDevicePinLockScreen();
+          }
         } else {
           openDeviceSetupChoice();
         }
@@ -2352,22 +2385,28 @@
       setTimeout(() => { if (card.parentNode) card.remove(); }, 10000);
     }
 
-    // 11. FILA DE UPLOAD EM SEGUNDO PLANO COM PAUSAR / RETOMAR / CANCELAR
+    // 11. FILA DE UPLOAD EM SEGUNDO PLANO + PROTEÇÃO ANTI-RETORNO PARA O PIN (LOCALSTORAGE)
     const SSD_UPLOAD_CHUNK_SIZE = 512 * 1024;
     const SSD_BIG_FILE_THRESHOLD = 10 * 1024 * 1024;
     const SSD_MAX_FILE_SIZE = 2 * 1024 * 1024 * 1024;
     const SSD_UPLOAD_CONCURRENCY = 3;
 
     function triggerCloudUpload() {
+      try { localStorage.setItem(PICKER_UNLOCK_KEY, String(Date.now())); } catch (e) {}
+      notifyNativeBackgroundUpload(true);
       const picker = document.getElementById('cloud-file-picker');
       picker.value = '';
       picker.click();
     }
 
     document.getElementById('cloud-file-picker').addEventListener('change', (e) => {
+      try { localStorage.removeItem(PICKER_UNLOCK_KEY); } catch (err) {}
       if (e.target.files && e.target.files.length > 0) {
         enqueueBackgroundUploads(Array.from(e.target.files));
         e.target.value = '';
+      } else {
+        const hasActive = state.uploadQueue.some(t => ['uploading', 'queued', 'finalizing'].includes(t.status));
+        if (!hasActive) notifyNativeBackgroundUpload(false);
       }
     });
 
@@ -2997,6 +3036,10 @@
         ['txt', 'md', 'json', 'js', 'ts', 'html', 'css', 'csv', 'xml', 'yml', 'yaml', 'log', 'ini', 'py', 'sql', 'sh'].includes(ext);
     }
 
+    function isPdfFile(file) {
+      return Boolean(file && (String(file.ext || '').toUpperCase() === 'PDF' || String(file.mimeType || '').toLowerCase() === 'application/pdf'));
+    }
+
     function enqueueThumbnailLoad(fileKey) {
       if (state.thumbnailUrls[fileKey]) return;
       state.thumbnailUrls[fileKey] = 'queued';
@@ -3360,13 +3403,14 @@
       }
     }
 
-    // 14. INSPETOR LATERAL + TELA CHEIA
+    // 14. INSPETOR LATERAL + LEITOR PDF.JS + TELA CHEIA
     async function openPreviewDrawer(fileKey) {
       const file = state.cloudFiles.find(f => f.key === fileKey);
       if (!file) return;
       state.previewItemKey = fileKey;
       state.confirmDeleteKey = null;
       state.previewZoom = 1;
+      state.pdfPage = 1;
       renderWorkspaceFiles();
 
       const cached = state.previewCache[fileKey];
@@ -3374,6 +3418,7 @@
         (file.category === 'photos' && file.sizeBytes <= 45 * 1024 * 1024) ||
         (file.category === 'audios' && file.sizeBytes <= 50 * 1024 * 1024) ||
         (file.category === 'videos' && file.sizeBytes <= 90 * 1024 * 1024) ||
+        (isPdfFile(file) && file.sizeBytes <= 50 * 1024 * 1024) ||
         (isTextPreviewable(file) && file.sizeBytes <= 2 * 1024 * 1024);
 
       if (cached || !canInlinePreview) { renderPreviewDrawer(file, { loading: false }); return; }
@@ -3428,6 +3473,43 @@
       if (labelEl) labelEl.textContent = `${Math.round(state.previewZoom * 100)}%`;
     }
 
+    async function loadPdfIntoCanvas(fileKey, canvasId, pageNum = 1, scale = 1.2) {
+      const entry = state.previewCache[fileKey];
+      if (!entry || !entry.blob || !window.pdfjsLib) return;
+      try {
+        if (!entry.pdfDoc) {
+          const ab = await entry.blob.arrayBuffer();
+          entry.pdfDoc = await pdfjsLib.getDocument({ data: new Uint8Array(ab) }).promise;
+        }
+        state.pdfDoc = entry.pdfDoc;
+        state.pdfTotalPages = entry.pdfDoc.numPages;
+        state.pdfPage = Math.min(Math.max(1, pageNum), state.pdfTotalPages);
+
+        const page = await entry.pdfDoc.getPage(state.pdfPage);
+        const viewport = page.getViewport({ scale });
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        await page.render({ canvasContext: ctx, viewport }).promise;
+
+        const lbl = document.getElementById(canvasId + '-page-label');
+        if (lbl) lbl.textContent = `${state.pdfPage} / ${state.pdfTotalPages}`;
+      } catch (e) {
+        showToast('Erro no PDF', 'Não foi possível renderizar este PDF.', 'danger');
+      }
+    }
+
+    function changePdfPage(fileKey, delta, isFullscreen = false) {
+      if (!state.pdfDoc || !fileKey) return;
+      const next = state.pdfPage + delta;
+      if (next < 1 || next > state.pdfTotalPages) return;
+      const canvasId = isFullscreen ? 'fs-pdf-canvas' : 'ws-pdf-canvas';
+      const scale = isFullscreen ? 1.5 * state.fsZoom : 1.1;
+      loadPdfIntoCanvas(fileKey, canvasId, next, scale);
+    }
+
     function openFullscreenMedia(fileKey) {
       const file = state.cloudFiles.find(f => f.key === fileKey);
       const cached = state.previewCache[fileKey];
@@ -3436,25 +3518,47 @@
       const modal = document.getElementById('modal-fullscreen-media');
       const imgEl = document.getElementById('fs-media-img');
       const vidEl = document.getElementById('fs-media-video');
+      const pdfWrap = document.getElementById('fs-pdf-wrap');
+      const pdfNav = document.getElementById('fs-pdf-nav');
+      const rotBtn = document.getElementById('fs-rotate-btn');
 
+      state.fsFileKey = fileKey;
+      state.fsIsPdf = isPdfFile(file);
       state.fsZoom = 1;
       state.fsRot = 0;
+
       document.getElementById('fs-media-title').textContent = file.name;
       vidEl.pause();
       vidEl.removeAttribute('src');
 
-      if (file.category === 'videos') {
-        imgEl.classList.add('hidden');
+      imgEl.classList.add('hidden');
+      vidEl.classList.add('hidden');
+      pdfWrap.classList.add('hidden');
+      pdfNav.classList.add('hidden');
+      pdfNav.classList.remove('flex');
+
+      if (state.fsIsPdf) {
+        pdfWrap.classList.remove('hidden');
+        pdfNav.classList.remove('hidden');
+        pdfNav.classList.add('flex');
+        rotBtn.classList.add('hidden');
+        document.getElementById('fs-zoom-out').classList.remove('hidden');
+        document.getElementById('fs-zoom-reset').classList.remove('hidden');
+        document.getElementById('fs-zoom-in').classList.remove('hidden');
+        document.getElementById('fs-zoom-reset').textContent = '100%';
+        loadPdfIntoCanvas(fileKey, 'fs-pdf-canvas', state.pdfPage || 1, 1.5);
+      } else if (file.category === 'videos') {
         vidEl.classList.remove('hidden');
         vidEl.src = cached.url;
+        rotBtn.classList.remove('hidden');
         document.getElementById('fs-zoom-out').classList.add('hidden');
         document.getElementById('fs-zoom-reset').classList.add('hidden');
         document.getElementById('fs-zoom-in').classList.add('hidden');
       } else {
-        vidEl.classList.add('hidden');
         imgEl.classList.remove('hidden');
         imgEl.src = cached.url;
         imgEl.style.transform = 'scale(1) rotate(0deg)';
+        rotBtn.classList.remove('hidden');
         document.getElementById('fs-zoom-out').classList.remove('hidden');
         document.getElementById('fs-zoom-reset').classList.remove('hidden');
         document.getElementById('fs-zoom-in').classList.remove('hidden');
@@ -3469,10 +3573,15 @@
     }
 
     function adjustFullscreenZoom(delta) {
-      state.fsZoom = delta === 0 ? 1 : Math.min(4, Math.max(0.75, +(state.fsZoom + delta).toFixed(2)));
+      state.fsZoom = delta === 0 ? 1 : Math.min(3.5, Math.max(0.6, +(state.fsZoom + delta).toFixed(2)));
+      document.getElementById('fs-zoom-reset').textContent = `${Math.round(state.fsZoom * 100)}%`;
+
+      if (state.fsIsPdf && state.fsFileKey) {
+        loadPdfIntoCanvas(state.fsFileKey, 'fs-pdf-canvas', state.pdfPage || 1, 1.5 * state.fsZoom);
+        return;
+      }
       const imgEl = document.getElementById('fs-media-img');
       if (imgEl) imgEl.style.transform = `scale(${state.fsZoom}) rotate(${state.fsRot}deg)`;
-      document.getElementById('fs-zoom-reset').textContent = `${Math.round(state.fsZoom * 100)}%`;
     }
 
     function rotateFullscreenMedia() {
@@ -3490,6 +3599,11 @@
       const vidEl = document.getElementById('fs-media-video');
       vidEl.pause();
       vidEl.removeAttribute('src');
+      document.getElementById('fs-pdf-wrap').classList.add('hidden');
+      document.getElementById('fs-pdf-nav').classList.add('hidden');
+      document.getElementById('fs-pdf-nav').classList.remove('flex');
+      state.fsIsPdf = false;
+      state.fsFileKey = null;
       modal.classList.add('hidden');
       modal.classList.remove('flex');
       if (window.AndroidBridge && typeof window.AndroidBridge.setFullscreen === 'function') {
@@ -3552,6 +3666,22 @@
         `;
       } else if (cached && file.category === 'audios') {
         stageHtml = `<div class="p-5 flex flex-col items-center gap-3 bg-gradient-to-b from-violet-500/15 to-[#060913]"><div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-500/20 text-violet-300"><i data-lucide="music" class="h-6 w-6"></i></div><audio src="${cached.url}" controls class="w-full h-10"></audio></div>`;
+      } else if (cached && isPdfFile(file)) {
+        stageHtml = `
+          <div class="flex flex-col bg-[#060913]">
+            <div class="flex items-center justify-between border-b border-[#1e293b] px-3 py-2 text-[11px]">
+              <div class="flex items-center gap-1.5">
+                <button type="button" onclick="changePdfPage('${file.key}', -1, false)" class="rounded bg-[#111827] border border-[#1e293b] px-2 py-0.5 text-white">◀</button>
+                <span id="ws-pdf-canvas-page-label" class="font-mono text-[#06b6d4] px-1">1 / ?</span>
+                <button type="button" onclick="changePdfPage('${file.key}', 1, false)" class="rounded bg-[#111827] border border-[#1e293b] px-2 py-0.5 text-white">▶</button>
+              </div>
+              <button type="button" onclick="openFullscreenMedia('${file.key}')" class="font-semibold text-[#06b6d4] hover:underline">⛶ Tela Cheia</button>
+            </div>
+            <div class="max-h-72 overflow-auto p-2 flex justify-center bg-[#0b1020]">
+              <canvas id="ws-pdf-canvas" onclick="openFullscreenMedia('${file.key}')" class="max-w-full h-auto rounded-lg shadow-lg bg-white cursor-zoom-in"></canvas>
+            </div>
+          </div>
+        `;
       } else if (cached && typeof cached.text === 'string') {
         stageHtml = `<div class="flex flex-col bg-[#060913]"><div class="flex items-center justify-between border-b border-[#1e293b] px-3 py-2 text-[11px] text-slate-400"><span class="font-mono">Prévia de Texto</span><button type="button" onclick="copyPreviewText('${file.key}')" class="inline-flex items-center gap-1 text-[#06b6d4] font-semibold"><i data-lucide="copy" class="h-3 w-3"></i><span>Copiar</span></button></div><pre class="max-h-64 overflow-auto p-3.5 font-mono text-[11px] leading-relaxed text-slate-200 whitespace-pre-wrap break-words">${escapeHtml(cached.text.slice(0, 18000))}</pre></div>`;
       } else {
@@ -3576,7 +3706,7 @@
             <div class="flex justify-between gap-2"><span class="text-slate-400">Enviado em</span><span class="text-slate-300">${file.date}</span></div>
           </div>
           <div class="space-y-2">
-            ${cached && (file.category === 'photos' || file.category === 'videos') ? `
+            ${cached && (file.category === 'photos' || file.category === 'videos' || isPdfFile(file)) ? `
               <button type="button" onclick="openFullscreenMedia('${file.key}')" class="flex w-full items-center justify-center gap-2 rounded-xl border border-[#06b6d4]/45 bg-[#06b6d4]/15 py-2.5 px-4 text-xs font-semibold text-[#06b6d4] hover:bg-[#06b6d4] hover:text-slate-950 transition"><i data-lucide="maximize-2" class="h-4 w-4"></i><span>Abrir em Tela Cheia</span></button>
             ` : ''}
             <button type="button" onclick="downloadFileToDevice('${file.key}')" class="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#2563eb] to-[#06b6d4] py-2.5 px-4 text-xs font-semibold text-white shadow-lg shadow-[#2563eb]/25 hover:brightness-110 transition"><i data-lucide="download" class="h-4 w-4"></i><span>Baixar Arquivo</span></button>
@@ -3600,6 +3730,9 @@
         </div>
       `;
       refreshIcons();
+      if (cached && isPdfFile(file)) {
+        loadPdfIntoCanvas(file.key, 'ws-pdf-canvas', state.pdfPage || 1, 1.1);
+      }
     }
 
     function closePreviewDrawer(rerender = true) {
@@ -3732,6 +3865,7 @@
       revokeAllObjectUrls();
       closePreviewDrawer(false);
       clearPendingAuth();
+      try { localStorage.removeItem(PICKER_UNLOCK_KEY); } catch (e) {}
       if (state.client && state.gramjsLib && state.gramjsLib.Api) {
         try { await state.client.invoke(new state.gramjsLib.Api.auth.LogOut()); } catch (e) {}
         try { await state.client.disconnect(); } catch (e) {}
@@ -3870,6 +4004,13 @@
       setTimeout(() => card.remove(), 250);
     }
 
+    window.addEventListener('focus', () => {
+      setTimeout(() => {
+        const hasActive = state.uploadQueue.some(t => ['uploading', 'queued', 'finalizing'].includes(t.status));
+        if (!hasActive) notifyNativeBackgroundUpload(false);
+      }, 1500);
+    });
+
     window.addEventListener('DOMContentLoaded', async () => {
       refreshIcons();
       await bootstrapSSDEngine();
@@ -3877,4 +4018,3 @@
   </script>
 </body>
 </html>
-<!-- FINAL PARTE 2 -->
