@@ -1,4 +1,4 @@
-package com.seu.nexus
+package com.ssd.nexus
 
 import android.annotation.SuppressLint
 import android.app.Activity
