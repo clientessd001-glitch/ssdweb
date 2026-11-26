@@ -350,7 +350,10 @@ class MainActivity : AppCompatActivity() {
         webView.onResume()
         webView.resumeTimers()
     }
-
+    override fun onPause() {
+        super.onPause()
+        webView.resumeTimers()
+    }
     private fun exitCustomFullscreenView() {
         if (customView == null) return
         fullscreenContainer.removeAllViews()
