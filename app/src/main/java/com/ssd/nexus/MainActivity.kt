@@ -128,11 +128,16 @@ class MainActivity : AppCompatActivity() {
         )
         setContentView(container)
 
-        ViewCompat.setOnApplyWindowInsetsListener(container) { view, insets ->
-            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            view.setPadding(bars.left, bars.top, bars.right, bars.bottom)
-            insets
-        }
+         ViewCompat.setOnApplyWindowInsetsListener(container) { view, insets ->
+         val bars = insets.getInsets(
+             WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
+         )
+         val fallbackTop = resources.getIdentifier("status_bar_height", "dimen", "android")
+             .takeIf { it > 0 }?.let { resources.getDimensionPixelSize(it) } ?: 0
+         val topPad = maxOf(bars.top, fallbackTop)
+         view.setPadding(bars.left, topPad, bars.right, bars.bottom)
+         WindowInsetsCompat.CONSUMED
+     }
         ViewCompat.requestApplyInsets(container)
 
         webView.settings.apply {
