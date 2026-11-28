@@ -3,92 +3,72 @@ package com.ssd.nexus
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
-import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
-import android.os.PowerManager
 import androidx.core.app.NotificationCompat
 
-class UploadKeepAliveService : Service() {
+class UploadForegroundService : Service() {
 
     companion object {
-        private const val CHANNEL_ID = "ssd_nexus_upload_channel"
-        private const val NOTIFICATION_ID = 1001
+        const val CHANNEL_ID = "ssd_nexus_upload_channel"
+        const val NOTIF_ID = 4041
+        const val ACTION_START = "ACTION_START"
+        const val ACTION_UPDATE = "ACTION_UPDATE"
+        const val ACTION_STOP = "ACTION_STOP"
+        const val EXTRA_PCT = "EXTRA_PCT"
+        const val EXTRA_TEXT = "EXTRA_TEXT"
     }
 
-    private var wakeLock: PowerManager.WakeLock? = null
+    override fun onCreate() {
+        super.onCreate()
+        createChannel()
+    }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        createNotificationChannel()
-        val notification = buildNotification()
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(
-                NOTIFICATION_ID,
-                notification,
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
-            )
-        } else {
-            startForeground(NOTIFICATION_ID, notification)
+        when (intent?.action) {
+            ACTION_STOP -> {
+                stopForeground(STOP_FOREGROUND_REMOVE)
+                stopSelf()
+                return START_NOT_STICKY
+            }
+            ACTION_START, ACTION_UPDATE -> {
+                val pct = intent.getIntExtra(EXTRA_PCT, 0)
+                val text = intent.getStringExtra(EXTRA_TEXT) ?: "Enviando arquivos em segundo plano..."
+                val notification = buildNotification(pct, text)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    startForeground(NOTIF_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+                } else {
+                    startForeground(NOTIF_ID, notification)
+                }
+            }
         }
-
-        acquireWakeLock()
         return START_STICKY
     }
 
-    private fun acquireWakeLock() {
-        if (wakeLock?.isHeld == true) return
-        val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
-        wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "SSDNexus::UploadWakeLock").apply {
-            setReferenceCounted(false)
-            acquire(60 * 60 * 1000L) // até 1 hora
-        }
-    }
-
-    override fun onDestroy() {
-        try {
-            if (wakeLock?.isHeld == true) wakeLock?.release()
-        } catch (_: Exception) {}
-        wakeLock = null
-        super.onDestroy()
-    }
-
-    private fun buildNotification(): Notification {
-        val openIntent = Intent(this, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
-        }
-        val pendingIntent = PendingIntent.getActivity(
-            this,
-            0,
-            openIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
+    private fun buildNotification(pct: Int, text: String): Notification {
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("SSD Nexus • Enviando arquivos")
-            .setContentText("Upload ativo em segundo plano. Toque para voltar ao cofre.")
+            .setContentTitle("SSD Nexus • Upload em Segundo Plano")
+            .setContentText(text)
             .setSmallIcon(android.R.drawable.stat_sys_upload)
+            .setOnlyAlertOnce(true)
             .setOngoing(true)
-            .setSilent(true)
-            .setContentIntent(pendingIntent)
+            .setProgress(100, pct.coerceIn(0, 100), pct == 0)
             .build()
     }
 
-    private fun createNotificationChannel() {
+    private fun createChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "Uploads em Segundo Plano",
+                "Uploads SSD Nexus",
                 NotificationManager.IMPORTANCE_LOW
-            ).apply {
-                description = "Mantém o envio de arquivos do SSD Nexus ativo com o app minimizado"
-            }
-            val manager = getSystemService(NotificationManager::class.java)
-            manager.createNotificationChannel(channel)
+            )
+            val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            nm.createNotificationChannel(channel)
         }
     }
 
